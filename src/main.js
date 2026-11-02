@@ -16,6 +16,8 @@ mapViewport.addEventListener('keydown', event => {
 if (window.matchMedia('(max-width: 700px)').matches) requestAnimationFrame(() => { mapViewport.scrollLeft = Math.max(0, project(12.3388,45.4408).x / 1200 * mapViewport.scrollWidth - mapViewport.clientWidth / 2); });
 const simulation=createSimulation(), paths=new Map(), portLayer=document.querySelector('#port-layer'), shipLayer=document.querySelector('#ship-layer');
 const instruction=document.querySelector('#map-instruction'), cancel=document.querySelector('#cancel-selection');
+const voyagesToggle=document.querySelector('#voyages-toggle'), voyagesPanel=document.querySelector('#routes');
+voyagesToggle.addEventListener('click',()=>{const expanded=voyagesToggle.getAttribute('aria-expanded')==='true';voyagesToggle.setAttribute('aria-expanded',String(!expanded));voyagesPanel.hidden=expanded;});
 let origin=null,scene;
 const portButtons=ports.map((port,index)=>{
   const button=document.createElement('button');button.type='button';button.className='harbor';button.style.left=`${port.x/12}%`;button.style.top=`${port.y/5.2}%`;
@@ -45,7 +47,7 @@ function renderRoutes(){
   if(!simulation.routes.length){const p=document.createElement('p');p.textContent='No voyages yet. Select two harbors on the map.';root.append(p);return;}
   for(const route of simulation.routes){
     const row=document.createElement('section');row.className='route-row';row.dataset.id=route.id;row.setAttribute('aria-labelledby',`voyage-title-${route.id}`);const text=document.createElement('div');const title=document.createElement('strong');title.id=`voyage-title-${route.id}`;title.textContent=`${ports[route.from].name} → ${ports[route.to].name}`;const status=document.createElement('span');status.className='route-state';status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.textContent=routeText(route);text.append(title,status);
-    const button=document.createElement('button');button.type='button';button.textContent='Remove';button.setAttribute('aria-label',`Remove route from ${ports[route.from].name} to ${ports[route.to].name}`);button.addEventListener('click',()=>{removeRoute(simulation,route.id);paths.delete(route.id);shipLayer.querySelector(`[data-id="${route.id}"]`)?.remove();scene?.drawRoutes();renderRoutes();updatePorts();instruction.textContent='Route removed; any cargo was returned to its origin.';document.querySelector('#voyages-summary').focus();});row.append(text,button);root.append(row);
+    const button=document.createElement('button');button.type='button';button.textContent='Remove';button.setAttribute('aria-label',`Remove route from ${ports[route.from].name} to ${ports[route.to].name}`);button.addEventListener('click',()=>{removeRoute(simulation,route.id);paths.delete(route.id);shipLayer.querySelector(`[data-id="${route.id}"]`)?.remove();scene?.drawRoutes();renderRoutes();updatePorts();instruction.textContent='Route removed; any cargo was returned to its origin.';voyagesToggle.focus();});row.append(text,button);root.append(row);
     const ship=document.createElement('div');ship.className='ship-label';ship.dataset.id=route.id;shipLayer.append(ship);
   }
 }
