@@ -24,6 +24,16 @@ test('the map loads and port navigation works at desktop and mobile widths', asy
     assert.match(await page.locator('#port-name').innerText(), /Venezia/);
     await page.setViewportSize({width:375,height:812});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+    const viewport = page.locator('.map-viewport');
+    assert.equal(await viewport.evaluate(el => el.scrollWidth > el.clientWidth), true);
+    assert.ok(await page.locator('#game canvas').evaluate(el => el.getBoundingClientRect().width) >= 1400);
+    await viewport.focus();
+    await page.keyboard.press('End');
+    assert.ok(await viewport.evaluate(el => el.scrollLeft) > 0);
+    await page.getByRole('button',{name:'Next port'}).click();
+    assert.match(await page.locator('#port-name').innerText(), /Ragusa/);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); await server.close(); }
 });
+
+

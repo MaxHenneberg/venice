@@ -9,6 +9,19 @@ const ports = [
   {name:'Costantinopoli', english:'Constantinople', tag:'EASTERN PORT', x:1001,y:174, description:'A magnificent city between two continents, and a gateway to the treasures of the East.'},
   {name:'Alessandria', english:'Alexandria', tag:'SOUTHERN PORT', x:992,y:489, description:'An ancient harbour at the edge of the Nile, linking the Mediterranean to trade routes beyond.'}
 ];
+const mapViewport = document.querySelector('.map-viewport');
+mapViewport.addEventListener('keydown', event => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  if (event.key === 'Home') mapViewport.scrollLeft = 0;
+  else if (event.key === 'End') mapViewport.scrollLeft = mapViewport.scrollWidth;
+  else mapViewport.scrollLeft += event.key === 'ArrowRight' ? 100 : -100;
+});
+// Start the narrow map near Venice while retaining access to the entire sea.
+if (window.matchMedia('(max-width: 700px)').matches) {
+  requestAnimationFrame(() => { mapViewport.scrollLeft = Math.max(0, 506 / 1200 * mapViewport.scrollWidth - mapViewport.clientWidth / 2); });
+}
+
 let selected = 0;
 let scene;
 function selectPort(index) {
@@ -70,3 +83,4 @@ class MapScene extends Phaser.Scene {
   updateSelection(){this.markers?.forEach((m,i)=>{m.ring.setRadius(i===selected?14:10).setFillStyle(i===selected?0xe8cfad:0xf0e8d3,i===selected?.7:.25);m.dot.setRadius(i===selected?6:5);});}
 }
 new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1200,height:520,backgroundColor:'#a9c9c4',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:MapScene,render:{antialias:true}});
+
