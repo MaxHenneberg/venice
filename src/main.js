@@ -24,7 +24,8 @@ const portButtons=ports.map((port,index)=>{
   button.innerHTML=`<span class="harbor-name">${port.name}</span><span class="harbor-goods" aria-hidden="true">${GOOD_INFO[simulation.ports[index].good].icon}<b>→</b>${GOOD_INFO[simulation.ports[index].needs].icon}</span><span class="harbor-dot" aria-hidden="true"></span>`;
   button.addEventListener('click',()=>selectHarbor(index));portLayer.append(button);return button;
 });
-const key=document.querySelector('#goods-key');
+const key=document.querySelector('#goods-key'), goodsToggle=document.querySelector('#goods-toggle');
+goodsToggle.addEventListener('click',()=>{const expanded=goodsToggle.getAttribute('aria-expanded')==='true';goodsToggle.setAttribute('aria-expanded',String(!expanded));key.hidden=expanded;});
 for(const [name,info] of Object.entries(GOOD_INFO)){const row=document.createElement('div');row.className='key-row';row.textContent=`${info.icon} ${name} · ${info.seconds.toFixed(1)}s per unit`;key.append(row);}
 const keyNote=document.createElement('p');keyNote.textContent='The same interval applies to loading and unloading each unit. Ports produce one unit every 5 seconds; ships carry up to 8.';key.append(keyNote);
 function updatePorts(){portButtons.forEach((button,i)=>{const p=simulation.ports[i];button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received. ${origin===i?'Starting harbor selected.':'Select harbor.'}`);button.setAttribute('aria-pressed',String(origin===i));});}
