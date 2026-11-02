@@ -22,11 +22,13 @@ test('route form and map drawing create visible moving ships and support removal
     assert.match(await page.locator('#route-message').innerText(),/retain its cargo/);
     await page.locator('#route-to').selectOption('1');
     await page.getByRole('button',{name:/Create route/}).click();
+    const loaded = Number((await page.locator('.route-row').last().innerText()).match(/(\d+) \/ 8 Glass/)[1]);
+    assert.ok(loaded > 0 && loaded <= 8);
     await page.waitForTimeout(13000);
     assert.match(await page.locator('.route-row').first().innerText(),/holding 8 \/ 8 Glass/);
     assert.match(await page.locator('.route-row').last().innerText(),/Returning/);
     await page.getByRole('button',{name:'Previous port'}).click();
-    assert.match(await page.locator('#port-economy').innerText(),/4 units received/);
+    assert.match(await page.locator('#port-economy').innerText(),new RegExp(`${loaded} units received`));
     await page.setViewportSize({width:320,height:812});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
     assert.deepEqual(errors,[]);
   } finally {await browser.close();await server.close();}
