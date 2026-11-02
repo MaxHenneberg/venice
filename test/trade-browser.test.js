@@ -16,7 +16,13 @@ test('map-only selection shows goods and cargo and supports keyboard/mobile inte
   assert.match(await page.locator('#map-instruction').innerText(),/created.*Loading Glass/);await page.waitForTimeout(2200);
   await page.waitForFunction(()=>/\b[1-8]\/8/.test(document.querySelector('.ship-label')?.textContent||''),null,{timeout:10000});
   await page.locator('summary').filter({hasText:'Voyages'}).click();assert.match(await page.locator('.route-state').innerText(),/Loading.*Glass.*1.0s per unit/);
-  await page.getByRole('button',{name:/Remove route from Venezia to Ragusa/}).click();assert.equal(await page.locator('.ship-label').count(),0);
+  const region=page.getByRole('region',{name:'Active voyages'});
+  const snapshot=await region.ariaSnapshot();
+  assert.match(snapshot,/Venezia → Ragusa/);assert.match(snapshot,/Loading.*Glass/);assert.match(snapshot,/button "Remove route from Venezia to Ragusa"/);
+  const remove=page.getByRole('button',{name:'Remove route from Venezia to Ragusa'});await remove.focus();
+  const previousStatus=await region.getByRole('status').innerText();await page.waitForFunction(old=>document.querySelector('.route-state')?.textContent!==old,previousStatus,{timeout:5000});
+  assert.equal(await remove.evaluate(el=>document.activeElement===el),true);assert.match(await region.ariaSnapshot(),/Glass/);
+  await remove.click();assert.equal(await page.locator('.ship-label').count(),0);assert.equal(await page.locator('#voyages-summary').evaluate(el=>document.activeElement===el),true);
   await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);assert.ok(await page.locator('.map-viewport').evaluate(el=>el.scrollWidth>el.clientWidth));
   await venice.click();await page.getByRole('button',{name:/Corfù: produces/}).click();assert.match(await page.locator('#map-instruction').innerText(),/needs Salt.*held/);assert.equal(await page.locator('.ship-label').count(),1);
   await venice.click();await ragusa.click();
