@@ -32,7 +32,24 @@ for(const [name,info] of Object.entries(GOOD_INFO)){const row=document.createEle
 const keyNote=document.createElement('p');keyNote.textContent=`The same interval applies to loading and unloading each unit. Ports produce one unit every 5 seconds; ships carry up to 8. Each unit delivered earns ${DELIVERY_REWARD} ducats.`;key.append(keyNote);
 function updatePorts(){portLayer.classList.toggle('route-selecting',origin!==null);portButtons.forEach((button,i)=>{const p=simulation.ports[i],selected=origin===i||pending?.to===i;button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received. ${origin===i?'Starting harbor selected.':pending?.to===i?'Destination harbor selected.':'Select harbor.'}`);button.setAttribute('aria-pressed',String(selected));});}
 function clearOrigin(message='Select a starting harbor, then a destination.'){origin=null;pending=null;popover.hidden=true;confirm.hidden=true;confirm.disabled=false;instruction.textContent='';help.textContent='Select two harbors to trade';announcement.textContent=message;updatePorts();}
-mapViewport.addEventListener('click',event=>{if(origin!==null&&!event.target.closest('.harbor'))clearOrigin('Route selection cancelled. Select a starting harbor.');});
+// Phaser may suppress the synthetic click after a touch on its canvas. Track
+// taps before Phaser handles them; panning or touching a control is not cancel.
+const mapShell=document.querySelector('.map-shell');let mapTouch=null;
+const isMapBackground=target=>target instanceof Element&&!target.closest('button, .map-tools');
+const cancelMapSelection=()=>clearOrigin('Route selection cancelled. Select a starting harbor.');
+mapShell.addEventListener('click',event=>{if(origin!==null&&isMapBackground(event.target))cancelMapSelection();},true);
+mapShell.addEventListener('pointerdown',event=>{
+  if(event.pointerType==='touch'&&origin!==null&&isMapBackground(event.target))mapTouch={id:event.pointerId,x:event.clientX,y:event.clientY,moved:false};
+},true);
+mapShell.addEventListener('pointermove',event=>{
+  if(mapTouch?.id===event.pointerId&&Math.hypot(event.clientX-mapTouch.x,event.clientY-mapTouch.y)>10)mapTouch.moved=true;
+},true);
+mapShell.addEventListener('pointerup',event=>{
+  if(mapTouch?.id!==event.pointerId)return;
+  const tap=!mapTouch.moved&&Math.hypot(event.clientX-mapTouch.x,event.clientY-mapTouch.y)<=10;mapTouch=null;
+  if(tap&&origin!==null&&isMapBackground(event.target))cancelMapSelection();
+},true);
+mapShell.addEventListener('pointercancel',event=>{if(mapTouch?.id===event.pointerId)mapTouch=null;},true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&origin!==null){clearOrigin('Route selection cancelled. Select a starting harbor.');}});
 function selectHarbor(index){
   if(origin===null){origin=index;popover.hidden=true;help.textContent=`From ${ports[index].name}: select a destination, or select open water to cancel.`;announcement.textContent=help.textContent;updatePorts();return;}
@@ -125,5 +142,5 @@ class MapScene extends Phaser.Scene {
     updateState();
   }
 }
-new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1200,height:520,backgroundColor:'#a9c9c4',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:MapScene,render:{antialias:true}});
+new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1200,height:520,backgroundColor:'#a9c9c4',input:{touch:{capture:false}},scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:MapScene,render:{antialias:true}});
 
