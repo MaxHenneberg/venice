@@ -15,7 +15,7 @@ mapViewport.addEventListener('keydown', event => {
 });
 if (window.matchMedia('(max-width: 700px)').matches) requestAnimationFrame(() => { mapViewport.scrollLeft = Math.max(0, project(12.3388,45.4408).x / 1200 * mapViewport.scrollWidth - mapViewport.clientWidth / 2); });
 const simulation=createSimulation(), paths=new Map(), portLayer=document.querySelector('#port-layer'), shipLayer=document.querySelector('#ship-layer');
-const instruction=document.querySelector('#map-instruction'), cancel=document.querySelector('#cancel-selection'), confirm=document.querySelector('#confirm-route'), treasury=document.querySelector('#treasury');
+const instruction=document.querySelector('#map-instruction'), announcement=document.querySelector('#map-announcement'), help=document.querySelector('#map-help-text'), popover=document.querySelector('#route-popover'), cancel=document.querySelector('#cancel-selection'), cancelQuote=document.querySelector('#cancel-quote'), confirm=document.querySelector('#confirm-route'), treasury=document.querySelector('#treasury');
 const labelsToggle=document.querySelector('#harbor-labels-toggle');
 labelsToggle.addEventListener('click',()=>{const visible=labelsToggle.getAttribute('aria-pressed')==='true';labelsToggle.setAttribute('aria-pressed',String(!visible));labelsToggle.textContent=`Harbor labels: ${visible?'off':'on'}`;portLayer.classList.toggle('labels-hidden',visible);});
 const voyagesToggle=document.querySelector('#voyages-toggle'), voyagesPanel=document.querySelector('#routes');
@@ -30,27 +30,28 @@ const key=document.querySelector('#goods-key'), goodsToggle=document.querySelect
 goodsToggle.addEventListener('click',()=>{const expanded=goodsToggle.getAttribute('aria-expanded')==='true';goodsToggle.setAttribute('aria-expanded',String(!expanded));key.hidden=expanded;});
 for(const [name,info] of Object.entries(GOOD_INFO)){const row=document.createElement('div');row.className='key-row';row.textContent=`${info.icon} ${name} · ${info.seconds.toFixed(1)}s per unit`;key.append(row);}
 const keyNote=document.createElement('p');keyNote.textContent=`The same interval applies to loading and unloading each unit. Ports produce one unit every 5 seconds; ships carry up to 8. Each unit delivered earns ${DELIVERY_REWARD} ducats.`;key.append(keyNote);
-function updatePorts(){portButtons.forEach((button,i)=>{const p=simulation.ports[i];button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received. ${origin===i?'Starting harbor selected.':'Select harbor.'}`);button.setAttribute('aria-pressed',String(origin===i));});}
-function clearOrigin(message='Select a starting harbor, then a destination.'){origin=null;pending=null;cancel.hidden=true;confirm.hidden=true;confirm.disabled=false;instruction.textContent=message;updatePorts();}
+function updatePorts(){portButtons.forEach((button,i)=>{const p=simulation.ports[i],selected=origin===i||pending?.to===i;button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received. ${origin===i?'Starting harbor selected.':pending?.to===i?'Destination harbor selected.':'Select harbor.'}`);button.setAttribute('aria-pressed',String(selected));});}
+function clearOrigin(message='Select a starting harbor, then a destination.'){origin=null;pending=null;popover.hidden=true;cancel.hidden=true;confirm.hidden=true;confirm.disabled=false;instruction.textContent='';help.textContent='Select two harbors to trade';announcement.textContent=message;updatePorts();}
 cancel.addEventListener('click',()=>clearOrigin('Route selection cancelled. Select a starting harbor.'));
+cancelQuote.addEventListener('click',()=>clearOrigin('Route selection cancelled. Select a starting harbor.'));
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&origin!==null){clearOrigin('Route selection cancelled. Select a starting harbor.');}});
 function selectHarbor(index){
-  if(origin===null){origin=index;cancel.hidden=false;instruction.textContent=`From ${ports[index].name}: select a destination harbor.`;updatePorts();return;}
+  if(origin===null){origin=index;popover.hidden=true;cancel.hidden=false;help.textContent=`From ${ports[index].name}: select a destination harbor.`;announcement.textContent=help.textContent;updatePorts();return;}
   if(index===origin){clearOrigin('Route selection cancelled. Select a starting harbor.');return;}
   try {
     const path=seaPath(ports[origin],ports[index]);if(!path)throw new Error('No navigable route between those harbors.');
     const quote=quoteRoute(origin,index,path);pending={from:origin,to:index,path,quote};
     const good=simulation.ports[origin].good,mismatch=simulation.ports[index].needs!==good;
     pending.message=`${ports[origin].name} to ${ports[index].name}: ${quote.distance} nautical miles × ${DISTANCE_RATE} ducats = ${quote.distanceCost}, plus ship ${quote.shipCost}; total ${quote.total} ducats.${mismatch?` ${ports[index].name} needs ${simulation.ports[index].needs}; ${good} will be held.`:''}`;
-    refreshQuote();
+    popover.hidden=false;cancel.hidden=true;refreshQuote();updatePorts();announcement.textContent=instruction.textContent;
     confirm.hidden=false;confirm.disabled=simulation.balance<quote.total;
-  }catch(error){instruction.textContent=error.message;}
+  }catch(error){instruction.textContent=error.message;announcement.textContent=error.message;}
 }
 function refreshQuote(){
   if(!pending)return;
   const insufficient=simulation.balance<pending.quote.total;
   const message=pending.message+(insufficient?' Insufficient funds.':'');
-  if(instruction.textContent!==message)instruction.textContent=message;
+  if(instruction.textContent!==message){instruction.textContent=message;announcement.textContent=message;}
   confirm.disabled=insufficient;
 }
 confirm.addEventListener('click',()=>{
@@ -58,7 +59,7 @@ confirm.addEventListener('click',()=>{
   try{const {from,to,path}=pending,route=addRoute(simulation,from,to,path);paths.set(route.id,path);scene?.drawRoutes();renderRoutes();
     const mismatch=simulation.ports[to].needs!==route.good;
     clearOrigin(`Route ${ports[from].name} to ${ports[to].name} created. Loading ${route.good}.${mismatch?` ${ports[to].name} needs ${simulation.ports[to].needs}; cargo will be held on arrival.`:''}`);updateState();
-  }catch(error){instruction.textContent=error.message;confirm.disabled=true;}
+  }catch(error){instruction.textContent=error.message;announcement.textContent=error.message;confirm.disabled=true;}
 });
 function routeText(route){const dest=simulation.ports[route.to];if(route.status==='Awaiting demand')return `Holding ${route.cargo}/${CAPACITY} ${route.good}; ${ports[route.to].name} needs ${dest.needs}`;return `${route.status} · ${route.cargo}/${CAPACITY} ${route.good} · ${GOOD_INFO[route.good].seconds.toFixed(1)}s per unit`;}
 function renderRoutes(){
@@ -66,7 +67,7 @@ function renderRoutes(){
   if(!simulation.routes.length){const p=document.createElement('p');p.textContent='No voyages yet. Select two harbors on the map.';root.append(p);return;}
   for(const route of simulation.routes){
     const row=document.createElement('section');row.className='route-row';row.dataset.id=route.id;row.setAttribute('aria-labelledby',`voyage-title-${route.id}`);const text=document.createElement('div');const title=document.createElement('strong');title.id=`voyage-title-${route.id}`;title.textContent=`${ports[route.from].name} → ${ports[route.to].name}`;const status=document.createElement('span');status.className='route-state';status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.textContent=routeText(route);text.append(title,status);
-    const button=document.createElement('button');button.type='button';button.textContent='Remove';button.setAttribute('aria-label',`Remove route from ${ports[route.from].name} to ${ports[route.to].name}`);button.addEventListener('click',()=>{removeRoute(simulation,route.id);paths.delete(route.id);shipLayer.querySelector(`[data-id="${route.id}"]`)?.remove();scene?.drawRoutes();renderRoutes();updatePorts();instruction.textContent='Route removed; any cargo was returned to its origin.';voyagesToggle.focus();});row.append(text,button);root.append(row);
+    const button=document.createElement('button');button.type='button';button.textContent='Remove';button.setAttribute('aria-label',`Remove route from ${ports[route.from].name} to ${ports[route.to].name}`);button.addEventListener('click',()=>{removeRoute(simulation,route.id);paths.delete(route.id);shipLayer.querySelector(`[data-id="${route.id}"]`)?.remove();scene?.drawRoutes();renderRoutes();updatePorts();announcement.textContent='Route removed; any cargo was returned to its origin.';voyagesToggle.focus();});row.append(text,button);root.append(row);
     const ship=document.createElement('div');ship.className='ship-label';ship.dataset.id=route.id;shipLayer.append(ship);
   }
 }
