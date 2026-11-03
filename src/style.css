@@ -16,3 +16,6 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 
 /* Keep the toolbar to the side of the northern harbors at all widths. */
 .map-tools{left:auto;right:10px;width:max-content;max-width:150px;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:5px}.map-brand{margin:0;font-size:9px}.map-tools>button,.map-tools .goods-control>button,.map-tools .voyages-control>button{width:100%}#treasury{align-self:flex-start}@media(max-width:700px){.map-tools{left:auto;right:6px;width:max-content;max-width:145px;flex-direction:column;align-items:stretch}.map-brand{width:auto}}
+
+/* While choosing a destination, show what every other harbor needs. */
+.labels-hidden.route-selecting .harbor:not([aria-pressed=true]){width:auto;height:auto;min-width:56px;padding:3px 5px;border:1px solid #c8bea4;border-radius:3px;background:#f5efdc;transform:translate(-50%,-100%)}.labels-hidden.route-selecting .harbor:not([aria-pressed=true]) .harbor-name{display:block}.labels-hidden.route-selecting .harbor:not([aria-pressed=true]) .harbor-goods{display:flex}.labels-hidden.route-selecting .harbor:not([aria-pressed=true]) .good-made{display:none}.labels-hidden.route-selecting .harbor:not([aria-pressed=true]) .harbor-dot{display:block}

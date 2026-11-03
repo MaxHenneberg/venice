@@ -12,8 +12,9 @@ test('map-only selection shows goods and cargo and supports keyboard/mobile inte
   assert.equal(await page.locator('.harbor').count(),7);
   assert.equal(await page.locator('.harbor-goods small').filter({hasText:'MAKES'}).count(),7);assert.equal(await page.locator('.harbor-goods small').filter({hasText:'NEEDS'}).count(),7);
   const labels=page.locator('#harbor-labels-toggle');assert.equal(await labels.getAttribute('aria-pressed'),'false');assert.equal(await page.locator('.harbor-goods:visible').count(),0);
-  const hiddenVenice=page.getByRole('button',{name:/Venezia: produces Glass.*needs Spices/});await hiddenVenice.click();assert.match(await page.locator('#map-help-text').innerText(),/From Venezia/);assert.equal(await page.locator('.harbor-goods:visible').count(),1);assert.equal(await page.locator('#route-popover').isHidden(),true);
-  await page.keyboard.press('Escape');assert.equal(await page.locator('#route-popover').isHidden(),true);assert.equal(await page.locator('.harbor-goods:visible').count(),0);
+  const hiddenVenice=page.getByRole('button',{name:/Venezia: produces Glass.*needs Spices/});await hiddenVenice.click();assert.match(await page.locator('#map-help-text').innerText(),/From Venezia/);assert.equal(await page.locator('.harbor-goods:visible').count(),7);assert.equal(await page.locator('.good-needed:visible').count(),7);assert.equal(await page.locator('.good-made:visible').count(),1);assert.equal(await page.locator('#route-popover').isHidden(),true);assert.equal(await page.getByRole('button',{name:'Cancel'}).count(),0);
+  await page.locator('.map-viewport').click({position:{x:10,y:200}});assert.match(await page.locator('#map-announcement').textContent(),/cancelled/i);assert.equal(await page.locator('.harbor-goods:visible').count(),0);
+  await hiddenVenice.focus();await page.keyboard.press('Enter');await page.keyboard.press('Escape');assert.equal(await page.locator('#route-popover').isHidden(),true);assert.equal(await page.locator('.harbor-goods:visible').count(),0);
   await labels.focus();await page.keyboard.press('Enter');assert.equal(await labels.getAttribute('aria-pressed'),'true');assert.equal(await page.locator('.harbor-goods:visible').count(),7);assert.equal(await page.locator('.harbor-goods').count(),7);assert.equal(await page.locator('.trading,.below,#route-form').count(),0);
   const goodsToggle=page.getByRole('button',{name:'Goods & handling'});assert.equal(await goodsToggle.getAttribute('aria-expanded'),'false');await goodsToggle.click();assert.equal(await goodsToggle.getAttribute('aria-expanded'),'true');
   const goods=page.getByRole('region',{name:'Goods and handling intervals'});const goodsSnapshot=await goods.ariaSnapshot();assert.match(goodsSnapshot,/Glass.*1.0s per unit/);assert.match(goodsSnapshot,/Salt.*0.5s per unit/);
@@ -23,7 +24,7 @@ test('map-only selection shows goods and cargo and supports keyboard/mobile inte
   await venice.focus();await page.keyboard.press('Enter');await ragusa.focus();await page.keyboard.press('Enter');
   assert.match(await page.locator('#map-instruction').innerText(),/nautical miles.*plus ship 150; total \d+ ducats/);
   const bounds=await page.locator('#route-popover').boundingBox(),map=await page.locator('.map-shell').boundingBox();assert.ok(bounds.x>=map.x&&bounds.y>=map.y&&bounds.x+bounds.width<=map.x+map.width&&bounds.y+bounds.height<=map.y+map.height);
-  await page.getByRole('button',{name:'Cancel'}).click();assert.equal(await page.locator('#route-popover').isHidden(),true);assert.match(await page.locator('#treasury').innerText(),/1000 ducats/);
+  await page.locator('.map-viewport').click({position:{x:10,y:200}});assert.equal(await page.locator('#route-popover').isHidden(),true);assert.match(await page.locator('#treasury').innerText(),/1000 ducats/);
   await venice.click();await ragusa.click();
   assert.match(await page.locator('#treasury').innerText(),/1000 ducats/);
   await page.getByRole('button',{name:'Establish route'}).click();
@@ -44,7 +45,7 @@ test('map-only selection shows goods and cargo and supports keyboard/mobile inte
   assert.equal(await remove.evaluate(el=>document.activeElement===el),true);assert.match(await region.ariaSnapshot(),/Glass/);
   await remove.click();assert.equal(await page.locator('.ship-label').count(),0);assert.equal(await page.locator('#voyages-toggle').evaluate(el=>document.activeElement===el),true);
   await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Harbor labels: on'}).click();assert.equal(await page.locator('.harbor-goods:visible').count(),0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);assert.ok(await page.locator('.map-viewport').evaluate(el=>el.scrollWidth>el.clientWidth));
-  await venice.click();await page.getByRole('button',{name:/Corfù: produces/}).click();assert.match(await page.locator('#map-instruction').innerText(),/needs Salt.*held/);await page.getByRole('button',{name:'Establish route'}).click();assert.equal(await page.locator('.ship-label').count(),1);
+  await venice.click();assert.equal(await page.locator('.good-needed:visible').count(),7);await page.locator('.map-viewport').click({position:{x:10,y:200}});assert.equal(await page.locator('.harbor-goods:visible').count(),0);await venice.click();await page.getByRole('button',{name:/Corfù: produces/}).click();assert.match(await page.locator('#map-instruction').innerText(),/needs Salt.*held/);await page.getByRole('button',{name:'Establish route'}).click();assert.equal(await page.locator('.ship-label').count(),1);
   await venice.click();await ragusa.click();await page.getByRole('button',{name:'Establish route'}).click();
   const paidBalance=Number((await page.locator('#treasury').innerText()).match(/\d+/)[0]);
   await page.waitForFunction(()=>[...document.querySelectorAll('.route-state')].some(e=>/Holding.*Glass.*needs Salt/.test(e.textContent)),null,{timeout:45000});

@@ -15,7 +15,7 @@ mapViewport.addEventListener('keydown', event => {
 });
 if (window.matchMedia('(max-width: 700px)').matches) requestAnimationFrame(() => { mapViewport.scrollLeft = Math.max(0, project(12.3388,45.4408).x / 1200 * mapViewport.scrollWidth - mapViewport.clientWidth / 2); });
 const simulation=createSimulation(), paths=new Map(), portLayer=document.querySelector('#port-layer'), shipLayer=document.querySelector('#ship-layer');
-const instruction=document.querySelector('#map-instruction'), announcement=document.querySelector('#map-announcement'), help=document.querySelector('#map-help-text'), popover=document.querySelector('#route-popover'), cancel=document.querySelector('#cancel-selection'), cancelQuote=document.querySelector('#cancel-quote'), confirm=document.querySelector('#confirm-route'), treasury=document.querySelector('#treasury');
+const instruction=document.querySelector('#map-instruction'), announcement=document.querySelector('#map-announcement'), help=document.querySelector('#map-help-text'), popover=document.querySelector('#route-popover'), confirm=document.querySelector('#confirm-route'), treasury=document.querySelector('#treasury');
 const labelsToggle=document.querySelector('#harbor-labels-toggle');
 labelsToggle.addEventListener('click',()=>{const visible=labelsToggle.getAttribute('aria-pressed')==='true';labelsToggle.setAttribute('aria-pressed',String(!visible));labelsToggle.textContent=`Harbor labels: ${visible?'off':'on'}`;portLayer.classList.toggle('labels-hidden',visible);});
 const voyagesToggle=document.querySelector('#voyages-toggle'), voyagesPanel=document.querySelector('#routes');
@@ -23,27 +23,26 @@ voyagesToggle.addEventListener('click',()=>{const expanded=voyagesToggle.getAttr
 let origin=null,pending=null,scene;
 const portButtons=ports.map((port,index)=>{
   const button=document.createElement('button');button.type='button';button.className='harbor';button.style.left=`${port.x/12}%`;button.style.top=`${port.y/5.2}%`;
-  button.innerHTML=`<span class="harbor-name">${port.name}</span><span class="harbor-goods" aria-hidden="true"><span><small>MAKES</small>${GOOD_INFO[simulation.ports[index].good].icon}</span><span><small>NEEDS</small>${GOOD_INFO[simulation.ports[index].needs].icon}</span></span><span class="harbor-dot" aria-hidden="true"></span>`;
+  button.innerHTML=`<span class="harbor-name">${port.name}</span><span class="harbor-goods" aria-hidden="true"><span class="good-made"><small>MAKES</small>${GOOD_INFO[simulation.ports[index].good].icon}</span><span class="good-needed"><small>NEEDS</small>${GOOD_INFO[simulation.ports[index].needs].icon}</span></span><span class="harbor-dot" aria-hidden="true"></span>`;
   button.addEventListener('click',()=>selectHarbor(index));portLayer.append(button);return button;
 });
 const key=document.querySelector('#goods-key'), goodsToggle=document.querySelector('#goods-toggle');
 goodsToggle.addEventListener('click',()=>{const expanded=goodsToggle.getAttribute('aria-expanded')==='true';goodsToggle.setAttribute('aria-expanded',String(!expanded));key.hidden=expanded;});
 for(const [name,info] of Object.entries(GOOD_INFO)){const row=document.createElement('div');row.className='key-row';row.textContent=`${info.icon} ${name} · ${info.seconds.toFixed(1)}s per unit`;key.append(row);}
 const keyNote=document.createElement('p');keyNote.textContent=`The same interval applies to loading and unloading each unit. Ports produce one unit every 5 seconds; ships carry up to 8. Each unit delivered earns ${DELIVERY_REWARD} ducats.`;key.append(keyNote);
-function updatePorts(){portButtons.forEach((button,i)=>{const p=simulation.ports[i],selected=origin===i||pending?.to===i;button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received. ${origin===i?'Starting harbor selected.':pending?.to===i?'Destination harbor selected.':'Select harbor.'}`);button.setAttribute('aria-pressed',String(selected));});}
-function clearOrigin(message='Select a starting harbor, then a destination.'){origin=null;pending=null;popover.hidden=true;cancel.hidden=true;confirm.hidden=true;confirm.disabled=false;instruction.textContent='';help.textContent='Select two harbors to trade';announcement.textContent=message;updatePorts();}
-cancel.addEventListener('click',()=>clearOrigin('Route selection cancelled. Select a starting harbor.'));
-cancelQuote.addEventListener('click',()=>clearOrigin('Route selection cancelled. Select a starting harbor.'));
+function updatePorts(){portLayer.classList.toggle('route-selecting',origin!==null);portButtons.forEach((button,i)=>{const p=simulation.ports[i],selected=origin===i||pending?.to===i;button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received. ${origin===i?'Starting harbor selected.':pending?.to===i?'Destination harbor selected.':'Select harbor.'}`);button.setAttribute('aria-pressed',String(selected));});}
+function clearOrigin(message='Select a starting harbor, then a destination.'){origin=null;pending=null;popover.hidden=true;confirm.hidden=true;confirm.disabled=false;instruction.textContent='';help.textContent='Select two harbors to trade';announcement.textContent=message;updatePorts();}
+mapViewport.addEventListener('click',event=>{if(origin!==null&&!event.target.closest('.harbor'))clearOrigin('Route selection cancelled. Select a starting harbor.');});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&origin!==null){clearOrigin('Route selection cancelled. Select a starting harbor.');}});
 function selectHarbor(index){
-  if(origin===null){origin=index;popover.hidden=true;cancel.hidden=false;help.textContent=`From ${ports[index].name}: select a destination harbor.`;announcement.textContent=help.textContent;updatePorts();return;}
+  if(origin===null){origin=index;popover.hidden=true;help.textContent=`From ${ports[index].name}: select a destination, or select open water to cancel.`;announcement.textContent=help.textContent;updatePorts();return;}
   if(index===origin){clearOrigin('Route selection cancelled. Select a starting harbor.');return;}
   try {
     const path=seaPath(ports[origin],ports[index]);if(!path)throw new Error('No navigable route between those harbors.');
     const quote=quoteRoute(origin,index,path);pending={from:origin,to:index,path,quote};
     const good=simulation.ports[origin].good,mismatch=simulation.ports[index].needs!==good;
     pending.message=`${ports[origin].name} to ${ports[index].name}: ${quote.distance} nautical miles × ${DISTANCE_RATE} ducats = ${quote.distanceCost}, plus ship ${quote.shipCost}; total ${quote.total} ducats.${mismatch?` ${ports[index].name} needs ${simulation.ports[index].needs}; ${good} will be held.`:''}`;
-    popover.hidden=false;cancel.hidden=true;refreshQuote();updatePorts();announcement.textContent=instruction.textContent;
+    popover.hidden=false;refreshQuote();updatePorts();announcement.textContent=instruction.textContent;
     confirm.hidden=false;confirm.disabled=simulation.balance<quote.total;
   }catch(error){instruction.textContent=error.message;announcement.textContent=error.message;}
 }
