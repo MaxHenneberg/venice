@@ -16,12 +16,14 @@ mapViewport.addEventListener('keydown', event => {
 if (window.matchMedia('(max-width: 700px)').matches) requestAnimationFrame(() => { mapViewport.scrollLeft = Math.max(0, project(12.3388,45.4408).x / 1200 * mapViewport.scrollWidth - mapViewport.clientWidth / 2); });
 const simulation=createSimulation(), paths=new Map(), portLayer=document.querySelector('#port-layer'), shipLayer=document.querySelector('#ship-layer');
 const instruction=document.querySelector('#map-instruction'), cancel=document.querySelector('#cancel-selection'), confirm=document.querySelector('#confirm-route'), treasury=document.querySelector('#treasury');
+const labelsToggle=document.querySelector('#harbor-labels-toggle');
+labelsToggle.addEventListener('click',()=>{const visible=labelsToggle.getAttribute('aria-pressed')==='true';labelsToggle.setAttribute('aria-pressed',String(!visible));labelsToggle.textContent=`Harbor labels: ${visible?'off':'on'}`;portLayer.classList.toggle('labels-hidden',visible);});
 const voyagesToggle=document.querySelector('#voyages-toggle'), voyagesPanel=document.querySelector('#routes');
 voyagesToggle.addEventListener('click',()=>{const expanded=voyagesToggle.getAttribute('aria-expanded')==='true';voyagesToggle.setAttribute('aria-expanded',String(!expanded));voyagesPanel.hidden=expanded;});
 let origin=null,pending=null,scene;
 const portButtons=ports.map((port,index)=>{
   const button=document.createElement('button');button.type='button';button.className='harbor';button.style.left=`${port.x/12}%`;button.style.top=`${port.y/5.2}%`;
-  button.innerHTML=`<span class="harbor-name">${port.name}</span><span class="harbor-goods" aria-hidden="true">${GOOD_INFO[simulation.ports[index].good].icon}<b>→</b>${GOOD_INFO[simulation.ports[index].needs].icon}</span><span class="harbor-dot" aria-hidden="true"></span>`;
+  button.innerHTML=`<span class="harbor-name">${port.name}</span><span class="harbor-goods" aria-hidden="true"><span><small>MAKES</small>${GOOD_INFO[simulation.ports[index].good].icon}</span><span><small>NEEDS</small>${GOOD_INFO[simulation.ports[index].needs].icon}</span></span><span class="harbor-dot" aria-hidden="true"></span>`;
   button.addEventListener('click',()=>selectHarbor(index));portLayer.append(button);return button;
 });
 const key=document.querySelector('#goods-key'), goodsToggle=document.querySelector('#goods-toggle');

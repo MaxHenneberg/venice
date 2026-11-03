@@ -9,7 +9,12 @@ test('map-only selection shows goods and cargo and supports keyboard/mobile inte
  try {
   const page=await browser.newPage({viewport:{width:1280,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`,{waitUntil:'domcontentloaded'});await page.locator('canvas').waitFor();
-  assert.equal(await page.locator('.harbor').count(),7);assert.equal(await page.locator('.harbor-goods').count(),7);assert.equal(await page.locator('.trading,.below,#route-form').count(),0);
+  assert.equal(await page.locator('.harbor').count(),7);
+  assert.equal(await page.locator('.harbor-goods small').filter({hasText:'MAKES'}).count(),7);assert.equal(await page.locator('.harbor-goods small').filter({hasText:'NEEDS'}).count(),7);
+  const labels=page.locator('#harbor-labels-toggle');await labels.focus();await page.keyboard.press('Enter');
+  assert.equal(await labels.getAttribute('aria-pressed'),'false');assert.equal(await page.locator('.harbor-goods:visible').count(),0);
+  const hiddenVenice=page.getByRole('button',{name:/Venezia: produces Glass.*needs Spices/});await hiddenVenice.click();assert.match(await page.locator('#map-instruction').innerText(),/From Venezia/);await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Harbor labels: off'}).click();assert.equal(await labels.getAttribute('aria-pressed'),'true');assert.equal(await page.locator('.harbor-goods:visible').count(),7);assert.equal(await page.locator('.harbor-goods').count(),7);assert.equal(await page.locator('.trading,.below,#route-form').count(),0);
   const goodsToggle=page.getByRole('button',{name:'Goods & handling'});assert.equal(await goodsToggle.getAttribute('aria-expanded'),'false');await goodsToggle.click();assert.equal(await goodsToggle.getAttribute('aria-expanded'),'true');
   const goods=page.getByRole('region',{name:'Goods and handling intervals'});const goodsSnapshot=await goods.ariaSnapshot();assert.match(goodsSnapshot,/Glass.*1.0s per unit/);assert.match(goodsSnapshot,/Salt.*0.5s per unit/);
   const goodsCdp=await page.context().newCDPSession(page);await goodsCdp.send('Accessibility.enable');const goodsAx=(await goodsCdp.send('Accessibility.getFullAXTree')).nodes.filter(n=>!n.ignored);assert.ok(goodsAx.some(n=>n.name?.value?.includes('Glass')&&n.name?.value?.includes('1.0s per unit')));assert.ok(goodsAx.some(n=>n.name?.value?.includes('Salt')&&n.name?.value?.includes('0.5s per unit')));assert.ok(goodsAx.some(n=>n.name?.value?.includes('Treasury')&&n.name?.value?.includes('1000 ducats')));await goodsCdp.detach();await goodsToggle.click();assert.equal(await goodsToggle.getAttribute('aria-expanded'),'false');
@@ -35,7 +40,7 @@ test('map-only selection shows goods and cargo and supports keyboard/mobile inte
   const previousStatus=await region.getByRole('status').innerText();await page.waitForFunction(old=>document.querySelector('.route-state')?.textContent!==old,previousStatus,{timeout:5000});
   assert.equal(await remove.evaluate(el=>document.activeElement===el),true);assert.match(await region.ariaSnapshot(),/Glass/);
   await remove.click();assert.equal(await page.locator('.ship-label').count(),0);assert.equal(await page.locator('#voyages-toggle').evaluate(el=>document.activeElement===el),true);
-  await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);assert.ok(await page.locator('.map-viewport').evaluate(el=>el.scrollWidth>el.clientWidth));
+  await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Harbor labels: on'}).click();assert.equal(await page.locator('.harbor-goods:visible').count(),0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);assert.ok(await page.locator('.map-viewport').evaluate(el=>el.scrollWidth>el.clientWidth));
   await venice.click();await page.getByRole('button',{name:/Corfù: produces/}).click();assert.match(await page.locator('#map-instruction').innerText(),/needs Salt.*held/);await page.getByRole('button',{name:'Establish route'}).click();assert.equal(await page.locator('.ship-label').count(),1);
   await venice.click();await ragusa.click();await page.getByRole('button',{name:'Establish route'}).click();
   const paidBalance=Number((await page.locator('#treasury').innerText()).match(/\d+/)[0]);
