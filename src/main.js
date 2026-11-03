@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import './style.css';
 import countries from './geography.json' with { type: 'json' };
 import { project, ports } from './geography.js';
-import { createSimulation, addRoute, removeRoute, advance, CAPACITY, GOOD_INFO } from './simulation.js';
+import { createSimulation, addRoute, removeRoute, advance, quoteRoute, DELIVERY_REWARD, DISTANCE_RATE, CAPACITY, GOOD_INFO } from './simulation.js';
 import { seaPath, pointAlong } from './sea-routes.js';
 
 const mapViewport = document.querySelector('.map-viewport');
@@ -15,10 +15,10 @@ mapViewport.addEventListener('keydown', event => {
 });
 if (window.matchMedia('(max-width: 700px)').matches) requestAnimationFrame(() => { mapViewport.scrollLeft = Math.max(0, project(12.3388,45.4408).x / 1200 * mapViewport.scrollWidth - mapViewport.clientWidth / 2); });
 const simulation=createSimulation(), paths=new Map(), portLayer=document.querySelector('#port-layer'), shipLayer=document.querySelector('#ship-layer');
-const instruction=document.querySelector('#map-instruction'), cancel=document.querySelector('#cancel-selection');
+const instruction=document.querySelector('#map-instruction'), cancel=document.querySelector('#cancel-selection'), confirm=document.querySelector('#confirm-route'), treasury=document.querySelector('#treasury');
 const voyagesToggle=document.querySelector('#voyages-toggle'), voyagesPanel=document.querySelector('#routes');
 voyagesToggle.addEventListener('click',()=>{const expanded=voyagesToggle.getAttribute('aria-expanded')==='true';voyagesToggle.setAttribute('aria-expanded',String(!expanded));voyagesPanel.hidden=expanded;});
-let origin=null,scene;
+let origin=null,pending=null,scene;
 const portButtons=ports.map((port,index)=>{
   const button=document.createElement('button');button.type='button';button.className='harbor';button.style.left=`${port.x/12}%`;button.style.top=`${port.y/5.2}%`;
   button.innerHTML=`<span class="harbor-name">${port.name}</span><span class="harbor-goods" aria-hidden="true">${GOOD_INFO[simulation.ports[index].good].icon}<b>→</b>${GOOD_INFO[simulation.ports[index].needs].icon}</span><span class="harbor-dot" aria-hidden="true"></span>`;
@@ -27,9 +27,9 @@ const portButtons=ports.map((port,index)=>{
 const key=document.querySelector('#goods-key'), goodsToggle=document.querySelector('#goods-toggle');
 goodsToggle.addEventListener('click',()=>{const expanded=goodsToggle.getAttribute('aria-expanded')==='true';goodsToggle.setAttribute('aria-expanded',String(!expanded));key.hidden=expanded;});
 for(const [name,info] of Object.entries(GOOD_INFO)){const row=document.createElement('div');row.className='key-row';row.textContent=`${info.icon} ${name} · ${info.seconds.toFixed(1)}s per unit`;key.append(row);}
-const keyNote=document.createElement('p');keyNote.textContent='The same interval applies to loading and unloading each unit. Ports produce one unit every 5 seconds; ships carry up to 8.';key.append(keyNote);
+const keyNote=document.createElement('p');keyNote.textContent=`The same interval applies to loading and unloading each unit. Ports produce one unit every 5 seconds; ships carry up to 8. Each unit delivered earns ${DELIVERY_REWARD} ducats.`;key.append(keyNote);
 function updatePorts(){portButtons.forEach((button,i)=>{const p=simulation.ports[i];button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received. ${origin===i?'Starting harbor selected.':'Select harbor.'}`);button.setAttribute('aria-pressed',String(origin===i));});}
-function clearOrigin(message='Select a starting harbor, then a destination.'){origin=null;cancel.hidden=true;instruction.textContent=message;updatePorts();}
+function clearOrigin(message='Select a starting harbor, then a destination.'){origin=null;pending=null;cancel.hidden=true;confirm.hidden=true;confirm.disabled=false;instruction.textContent=message;updatePorts();}
 cancel.addEventListener('click',()=>clearOrigin('Route selection cancelled. Select a starting harbor.'));
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&origin!==null){clearOrigin('Route selection cancelled. Select a starting harbor.');}});
 function selectHarbor(index){
@@ -37,11 +37,19 @@ function selectHarbor(index){
   if(index===origin){clearOrigin('Route selection cancelled. Select a starting harbor.');return;}
   try {
     const path=seaPath(ports[origin],ports[index]);if(!path)throw new Error('No navigable route between those harbors.');
-    const route=addRoute(simulation,origin,index);paths.set(route.id,path);scene?.drawRoutes();renderRoutes();
-    const mismatch=simulation.ports[index].needs!==route.good;
-    clearOrigin(`Route ${ports[route.from].name} to ${ports[index].name} created. Loading ${route.good}.${mismatch?` ${ports[index].name} needs ${simulation.ports[index].needs}; cargo will be held on arrival.`:''}`);
+    const quote=quoteRoute(origin,index,path);pending={from:origin,to:index,path,quote};
+    const good=simulation.ports[origin].good,mismatch=simulation.ports[index].needs!==good;
+    instruction.textContent=`${ports[origin].name} to ${ports[index].name}: ${quote.distance} nautical miles × ${DISTANCE_RATE} ducats = ${quote.distanceCost}, plus ship ${quote.shipCost}; total ${quote.total} ducats.${mismatch?` ${ports[index].name} needs ${simulation.ports[index].needs}; ${good} will be held.`:''}${simulation.balance<quote.total?' Insufficient funds.':''}`;
+    confirm.hidden=false;confirm.disabled=simulation.balance<quote.total;
   }catch(error){instruction.textContent=error.message;}
 }
+confirm.addEventListener('click',()=>{
+  if(!pending)return;
+  try{const {from,to,path}=pending,route=addRoute(simulation,from,to,path);paths.set(route.id,path);scene?.drawRoutes();renderRoutes();
+    const mismatch=simulation.ports[to].needs!==route.good;
+    clearOrigin(`Route ${ports[from].name} to ${ports[to].name} created. Loading ${route.good}.${mismatch?` ${ports[to].name} needs ${simulation.ports[to].needs}; cargo will be held on arrival.`:''}`);updateState();
+  }catch(error){instruction.textContent=error.message;confirm.disabled=true;}
+});
 function routeText(route){const dest=simulation.ports[route.to];if(route.status==='Awaiting demand')return `Holding ${route.cargo}/${CAPACITY} ${route.good}; ${ports[route.to].name} needs ${dest.needs}`;return `${route.status} · ${route.cargo}/${CAPACITY} ${route.good} · ${GOOD_INFO[route.good].seconds.toFixed(1)}s per unit`;}
 function renderRoutes(){
   const root=document.querySelector('#routes');root.replaceChildren();shipLayer.replaceChildren();document.querySelector('#route-count').textContent=simulation.routes.length;
@@ -53,6 +61,8 @@ function renderRoutes(){
   }
 }
 function updateState(){
+  treasury.textContent=`Treasury · ${simulation.balance} ducats`;
+  if(pending)confirm.disabled=simulation.balance<pending.quote.total;
   updatePorts();
   const placed=[];
   for(const route of simulation.routes){const status=document.querySelector(`.route-row[data-id="${route.id}"] .route-state`);if(status && status.textContent!==routeText(route))status.textContent=routeText(route);const ship=shipLayer.querySelector(`[data-id="${route.id}"]`);if(ship){const p=pointAlong(paths.get(route.id),route.progress);ship.style.left=`${p.x/12}%`;ship.style.top=`${p.y/5.2}%`;const offset=placed.filter(other=>Math.hypot(other.x-p.x,other.y-p.y)<25).length;placed.push(p);ship.style.transform=`translate(-50%, ${10+offset*22}px)`;ship.textContent=`⛵ ${GOOD_INFO[route.good].icon} ${route.cargo}/${CAPACITY} · ${route.status}`;}}
