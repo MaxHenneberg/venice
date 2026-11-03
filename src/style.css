@@ -19,3 +19,16 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 
 /* While choosing a destination, show what every other harbor needs. */
 .labels-hidden.route-selecting .harbor:not([aria-pressed=true]){width:auto;height:auto;min-width:56px;padding:3px 5px;border:1px solid #c8bea4;border-radius:3px;background:#f5efdc;transform:translate(-50%,-100%)}.labels-hidden.route-selecting .harbor:not([aria-pressed=true]) .harbor-name{display:block}.labels-hidden.route-selecting .harbor:not([aria-pressed=true]) .harbor-goods{display:flex}.labels-hidden.route-selecting .harbor:not([aria-pressed=true]) .good-made{display:none}.labels-hidden.route-selecting .harbor:not([aria-pressed=true]) .harbor-dot{display:block}
+
+/* Keep existing desktop/portrait controls unchanged; compact only short landscape screens. */
+#landscape-menu-toggle{display:none}#landscape-controls{display:flex;flex-direction:column;gap:5px}#landscape-controls>button,#landscape-controls .goods-control>button,#landscape-controls .voyages-control>button{width:100%}
+@media (orientation:landscape) and (max-height:500px) and (max-width:1000px){
+  main{padding:4px}.map-viewport{height:calc(100dvh - 10px);overflow-x:auto;overflow-y:hidden;touch-action:pan-x}
+  #game{min-width:calc(230.76923dvh - 23.077px)}
+  .map-tools{top:6px;right:6px;max-width:155px;gap:4px;padding:5px}.map-brand{display:none}
+  #landscape-menu-toggle{display:block;min-height:44px;border:1px solid #ccd7c6;background:#edf0e5;color:#405e4f;font:700 11px "DM Sans",sans-serif;cursor:pointer}
+  #landscape-controls{display:none}#landscape-controls.is-open{display:flex}
+  #landscape-controls button{min-height:44px}.tool-panel{max-height:calc(100dvh - 80px);overflow:auto;max-width:calc(100vw - 20px)}
+  .route-popover{bottom:30px;max-height:calc(100dvh - 50px);overflow:auto}.route-actions button{min-height:44px}
+  .harbor::before{content:"";position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%)}
+}
