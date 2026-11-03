@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open the local address printed by Vite. Use the port markers or the previous/next buttons to explore. Run `npm run build` for a production build and `npm test` for the available automated checks.
+Open the local address printed by Vite. Select an origin and destination harbor directly on the map to create a route. Harbor buttons are keyboard accessible. Run `npm run build` for a production build and `npm test` for the available automated checks.
 
 ## Map data
 
@@ -19,5 +19,7 @@ The land and modern country outlines are derived from [Natural Earth 1:50m Admin
 
 ## Trading
 
-Each port starts with 12 units of its own good, produces one every five seconds up to 40, and has one standing need shown when the port is selected. Choose origin and destination in the form or select **Draw on map**, then click two ports. A ship loads up to eight available units, sails each leg in 12 seconds, and repeats the journey. It delivers only when the destination needs its cargo; otherwise it stays there holding the cargo. Removing a route returns its cargo to its origin. The simulation is kept in the current browser session and resets on reload.
+Each port starts with 12 units of its own good and produces one every five seconds up to 40. Select a harbor to see its production and need and the needs of the other harbors; the map's Harbor labels control shows or hides all badges outside route selection. Select a second harbor to see a route quote on the map; select open water or press Escape to cancel. A ship loads up to eight units one at a time, travels each leg in 12 seconds, and unloads one unit at a time only if the destination needs that good. Otherwise it waits with its cargo. Each good has its own seconds-per-unit handling interval, shown in the map's Goods & handling key. The Voyages panel shows route status and allows removal, returning remaining cargo to its origin. The simulation resets on reload.
+
+The treasury starts with 1,000 ducats. Before establishing a route, the map quotes a fixed 150-ducat ship cost plus 0.2 ducats for each nautical mile along the navigable path (distance and the resulting distance charge round up). Confirming pays the cost once; a route cannot be established without sufficient funds. Each unit unloaded at a port that needs it earns 20 ducats. Cargo held at a port that does not need it earns nothing, and removing a route does not refund its cost.
 

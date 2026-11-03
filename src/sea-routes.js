@@ -52,3 +52,17 @@ export function pointAlong(path, progress) {
   return path[0];
 }
 
+// Approximate nautical miles along the navigable polyline by undoing the projection.
+export function routeDistanceNm(path) {
+  const north=Math.log(Math.tan(Math.PI/4+47.3*Math.PI/360));
+  const south=Math.log(Math.tan(Math.PI/4+30*Math.PI/360));
+  const coordinate=p=>({lon:p.x/1200*48*Math.PI/180,lat:2*Math.atan(Math.exp(north-p.y/520*(north-south)))-Math.PI/2});
+  let distance=0;
+  for(let i=1;i<path.length;i++){
+    const a=coordinate(path[i-1]),b=coordinate(path[i]);
+    const h=Math.sin((b.lat-a.lat)/2)**2+Math.cos(a.lat)*Math.cos(b.lat)*Math.sin((b.lon-a.lon)/2)**2;
+    distance+=3440.065*2*Math.asin(Math.sqrt(Math.min(1,h)));
+  }
+  return Math.ceil(distance);
+}
+

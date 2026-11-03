@@ -3,34 +3,71 @@ import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { existsSync } from 'node:fs';
-import { ports } from '../src/geography.js';
-const candidates = [process.env.CHROME_PATH,'C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','/usr/bin/chromium','/usr/bin/google-chrome'].filter(Boolean);
-test('route form and map drawing create visible moving ships and support removal', async () => {
-  const server=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'silent'}); await server.listen();
-  const browser=await chromium.launch({headless:true,executablePath:candidates.find(existsSync)});
-  try {
-    const page=await browser.newPage({viewport:{width:1280,height:1000}}); const errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`,{waitUntil:'domcontentloaded'});await page.locator('canvas').waitFor();
-    await page.getByRole('button',{name:/Create route/}).click();
-    const row=page.locator('.route-row').first();assert.match(await row.innerText(),/Venezia → Ragusa/);assert.match(await row.innerText(),/8 \/ 8 Glass/);
-    await page.waitForTimeout(1200);assert.doesNotMatch(await row.innerText(),/0% along route/);
-    await page.getByRole('button',{name:'Remove route from Venezia to Ragusa'}).click();assert.equal(await page.locator('.route-row').count(),0);
-    await page.getByRole('button',{name:/Draw on map/}).click();
-    const canvas=page.locator('canvas');await canvas.scrollIntoViewIfNeeded();const box=await canvas.boundingBox();
-    for(const i of [0,2]) await page.mouse.click(box.x+ports[i].x/1200*box.width,box.y+ports[i].y/520*box.height);
-    assert.match(await page.locator('.route-row').innerText(),/Venezia → Corfù/);
-    assert.match(await page.locator('#route-message').innerText(),/retain its cargo/);
-    await page.locator('#route-to').selectOption('1');
-    await page.getByRole('button',{name:/Create route/}).click();
-    const loaded = Number((await page.locator('.route-row').last().innerText()).match(/(\d+) \/ 8 Glass/)[1]);
-    assert.ok(loaded > 0 && loaded <= 8);
-    await page.waitForTimeout(13000);
-    assert.match(await page.locator('.route-row').first().innerText(),/holding 8 \/ 8 Glass/);
-    assert.match(await page.locator('.route-row').last().innerText(),/Returning/);
-    await page.getByRole('button',{name:'Previous port'}).click();
-    assert.match(await page.locator('#port-economy').innerText(),new RegExp(`${loaded} units received`));
-    await page.setViewportSize({width:320,height:812});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
-    assert.deepEqual(errors,[]);
-  } finally {await browser.close();await server.close();}
+const candidates=[process.env.CHROME_PATH,'C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','/usr/bin/chromium','/usr/bin/google-chrome'].filter(Boolean);
+test('map-only selection shows goods and cargo and supports keyboard/mobile interaction',async()=>{
+ const server=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'silent'});await server.listen();const browser=await chromium.launch({headless:true,executablePath:candidates.find(existsSync)});
+ try {
+  const page=await browser.newPage({viewport:{width:1280,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`,{waitUntil:'domcontentloaded'});await page.locator('canvas').waitFor();
+  assert.equal(await page.locator('.harbor').count(),7);
+  assert.equal(await page.locator('.harbor-goods small').filter({hasText:'MAKES'}).count(),7);assert.equal(await page.locator('.harbor-goods small').filter({hasText:'NEEDS'}).count(),7);
+  const labels=page.locator('#harbor-labels-toggle');assert.equal(await labels.getAttribute('aria-pressed'),'false');assert.equal(await page.locator('.harbor-goods:visible').count(),0);
+  const hiddenVenice=page.getByRole('button',{name:/Venezia: produces Glass.*needs Spices/});await hiddenVenice.click();assert.match(await page.locator('#map-help-text').innerText(),/From Venezia/);assert.equal(await page.locator('.harbor-goods:visible').count(),7);assert.equal(await page.locator('.good-needed:visible').count(),7);assert.equal(await page.locator('.good-made:visible').count(),1);assert.equal(await page.locator('#route-popover').isHidden(),true);assert.equal(await page.getByRole('button',{name:'Cancel'}).count(),0);
+  await page.locator('.map-viewport').click({position:{x:10,y:200}});assert.match(await page.locator('#map-announcement').textContent(),/cancelled/i);assert.equal(await page.locator('.harbor-goods:visible').count(),0);
+  await hiddenVenice.focus();await page.keyboard.press('Enter');await page.keyboard.press('Escape');assert.equal(await page.locator('#route-popover').isHidden(),true);assert.equal(await page.locator('.harbor-goods:visible').count(),0);
+  await labels.focus();await page.keyboard.press('Enter');assert.equal(await labels.getAttribute('aria-pressed'),'true');assert.equal(await page.locator('.harbor-goods:visible').count(),7);assert.equal(await page.locator('.harbor-goods').count(),7);assert.equal(await page.locator('.trading,.below,#route-form').count(),0);
+  const goodsToggle=page.getByRole('button',{name:'Goods & handling'});assert.equal(await goodsToggle.getAttribute('aria-expanded'),'false');await goodsToggle.click();assert.equal(await goodsToggle.getAttribute('aria-expanded'),'true');
+  const goods=page.getByRole('region',{name:'Goods and handling intervals'});const goodsSnapshot=await goods.ariaSnapshot();assert.match(goodsSnapshot,/Glass.*1.0s per unit/);assert.match(goodsSnapshot,/Salt.*0.5s per unit/);
+  const goodsCdp=await page.context().newCDPSession(page);await goodsCdp.send('Accessibility.enable');const goodsAx=(await goodsCdp.send('Accessibility.getFullAXTree')).nodes.filter(n=>!n.ignored);assert.ok(goodsAx.some(n=>n.name?.value?.includes('Glass')&&n.name?.value?.includes('1.0s per unit')));assert.ok(goodsAx.some(n=>n.name?.value?.includes('Salt')&&n.name?.value?.includes('0.5s per unit')));assert.ok(goodsAx.some(n=>n.name?.value?.includes('Treasury')&&n.name?.value?.includes('1000 ducats')));await goodsCdp.detach();await goodsToggle.click();assert.equal(await goodsToggle.getAttribute('aria-expanded'),'false');
+  const venice=page.getByRole('button',{name:/Venezia: produces Glass.*needs Spices/}),ragusa=page.getByRole('button',{name:/Ragusa: produces Salt.*needs Glass/});
+  await venice.click();assert.match(await page.locator('#map-help-text').innerText(),/select a destination/i);await page.keyboard.press('Escape');assert.match(await page.locator('#map-announcement').textContent(),/cancelled/i);
+  await venice.focus();await page.keyboard.press('Enter');await ragusa.focus();await page.keyboard.press('Enter');
+  assert.match(await page.locator('#map-instruction').innerText(),/nautical miles.*plus ship 150; total \d+ ducats/);
+  const bounds=await page.locator('#route-popover').boundingBox(),map=await page.locator('.map-shell').boundingBox();assert.ok(bounds.x>=map.x&&bounds.y>=map.y&&bounds.x+bounds.width<=map.x+map.width&&bounds.y+bounds.height<=map.y+map.height);
+  await page.locator('.map-viewport').click({position:{x:10,y:200}});assert.equal(await page.locator('#route-popover').isHidden(),true);assert.match(await page.locator('#treasury').innerText(),/1000 ducats/);
+  await venice.click();await ragusa.click();
+  assert.match(await page.locator('#treasury').innerText(),/1000 ducats/);
+  await page.getByRole('button',{name:'Establish route'}).click();
+  assert.equal(await page.locator('#route-popover').isHidden(),true);assert.match(await page.locator('#map-announcement').textContent(),/created.*Loading Glass/);await page.waitForTimeout(2200);
+  await page.waitForFunction(()=>/\b[1-8]\/8/.test(document.querySelector('.ship-label')?.textContent||''),null,{timeout:10000});
+  const voyagesToggle=page.getByRole('button',{name:'Voyages 1'});assert.equal(await voyagesToggle.getAttribute('aria-expanded'),'false');await voyagesToggle.click();assert.equal(await voyagesToggle.getAttribute('aria-expanded'),'true');assert.match(await page.locator('.route-state').innerText(),/Loading.*Glass.*1.0s per unit/);
+  const region=page.getByRole('region',{name:'Active voyages'});
+  const snapshot=await region.ariaSnapshot();
+  assert.match(snapshot,/Venezia → Ragusa/);assert.match(snapshot,/Loading.*Glass/);assert.match(snapshot,/button "Remove route from Venezia to Ragusa"/);
+  const cdp=await page.context().newCDPSession(page);await cdp.send('Accessibility.enable');
+  const ax=(await cdp.send('Accessibility.getFullAXTree')).nodes.filter(node=>!node.ignored);
+  assert.ok(ax.some(node=>node.role?.value==='button' && node.name?.value==='Remove route from Venezia to Ragusa'));
+  assert.ok(ax.some(node=>node.name?.value?.includes('Venezia → Ragusa')));
+  assert.ok(ax.some(node=>node.name?.value?.includes('Glass') && node.name?.value?.includes('Loading')));
+  await cdp.detach();
+  const remove=page.getByRole('button',{name:'Remove route from Venezia to Ragusa'});await remove.focus();
+  const previousStatus=await region.getByRole('status').innerText();await page.waitForFunction(old=>document.querySelector('.route-state')?.textContent!==old,previousStatus,{timeout:5000});
+  assert.equal(await remove.evaluate(el=>document.activeElement===el),true);assert.match(await region.ariaSnapshot(),/Glass/);
+  await remove.click();assert.equal(await page.locator('.ship-label').count(),0);assert.equal(await page.locator('#voyages-toggle').evaluate(el=>document.activeElement===el),true);
+  await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Harbor labels: on'}).click();assert.equal(await page.locator('.harbor-goods:visible').count(),0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);assert.ok(await page.locator('.map-viewport').evaluate(el=>el.scrollWidth>el.clientWidth));
+  await venice.click();assert.equal(await page.locator('.good-needed:visible').count(),7);await page.locator('.map-viewport').click({position:{x:10,y:200}});assert.equal(await page.locator('.harbor-goods:visible').count(),0);await venice.click();await page.getByRole('button',{name:/Corfù: produces/}).click();assert.match(await page.locator('#map-instruction').innerText(),/needs Salt.*held/);await page.getByRole('button',{name:'Establish route'}).click();assert.equal(await page.locator('.ship-label').count(),1);
+  await venice.click();await ragusa.click();await page.getByRole('button',{name:'Establish route'}).click();
+  const paidBalance=Number((await page.locator('#treasury').innerText()).match(/\d+/)[0]);
+  await page.waitForFunction(()=>[...document.querySelectorAll('.route-state')].some(e=>/Holding.*Glass.*needs Salt/.test(e.textContent)),null,{timeout:45000});
+  await page.waitForFunction(()=>{const label=[...document.querySelectorAll('.harbor')].find(e=>e.getAttribute('aria-label').startsWith('Ragusa:'));return /needs Glass, [1-9]\d* received/.test(label?.getAttribute('aria-label')||'');},null,{timeout:45000});
+  await page.waitForFunction(before=>Number(document.querySelector('#treasury').textContent.match(/\d+/)[0])>before,paidBalance,{timeout:5000});
+  assert.deepEqual(errors,[]);
+ }finally{await browser.close();await server.close();}
 });
 
+test('route quote is shown before payment and insufficient funds prevents purchase',async()=>{
+ const server=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'silent'});await server.listen();const browser=await chromium.launch({headless:true,executablePath:candidates.find(existsSync)});
+ try{
+  const page=await browser.newPage({viewport:{width:390,height:844}});await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`);await page.locator('canvas').waitFor();
+  const origin=page.getByRole('button',{name:/Venezia: produces/}),confirm=page.getByRole('button',{name:'Establish route'});
+  let rejected=false;
+  for(const destination of ['Beirut','Alessandria','Costantinopoli','Candia','Corfù','Ragusa']){
+   const before=await page.locator('#treasury').innerText();await origin.click();await page.getByRole('button',{name:new RegExp(`${destination}: produces`)}).click();
+   const popup=await page.locator('#route-popover').boundingBox(),map=await page.locator('.map-shell').boundingBox();assert.ok(popup.x>=map.x&&popup.y>=map.y&&popup.x+popup.width<=map.x+map.width&&popup.y+popup.height<=map.y+map.height);
+   const message=await page.locator('#map-instruction').innerText();assert.match(message,/nautical miles.*plus ship 150; total \d+ ducats/);assert.equal(await page.locator('#treasury').innerText(),before);
+   if(await confirm.isDisabled()){assert.match(message,/Insufficient funds/);rejected=true;break;}
+   const total=Number(message.match(/total (\d+) ducats/)[1]);await confirm.click();const after=Number((await page.locator('#treasury').innerText()).match(/\d+/)[0]);assert.equal(after,Number(before.match(/\d+/)[0])-total);
+  }
+  assert.equal(rejected,true);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+ }finally{await browser.close();await server.close();}
+});
