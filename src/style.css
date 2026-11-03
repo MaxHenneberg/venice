@@ -7,3 +7,6 @@
 .voyages-control{position:relative}.voyages-control>button{cursor:pointer;border:1px solid #ccd7c6;background:transparent;padding:7px 10px;color:#546e60;font:700 10px "DM Sans",sans-serif;white-space:nowrap}.tool-panel[hidden]{display:none}
 
 .goods-control{position:relative}.goods-control>button{cursor:pointer;border:1px solid #ccd7c6;background:transparent;padding:7px 10px;color:#546e60;font:700 10px "DM Sans",sans-serif;white-space:nowrap}
+
+.harbor-goods{display:flex;align-items:center;gap:6px}.harbor-goods span{display:flex;align-items:center;gap:2px}.harbor-goods small{font:700 9px "DM Sans",sans-serif;letter-spacing:.03em;color:#61796a}.labels-toggle{border:1px solid #ccd7c6;background:transparent;padding:7px 10px;color:#546e60;font:700 10px "DM Sans",sans-serif;white-space:nowrap;cursor:pointer}.labels-hidden .harbor{min-width:0;width:24px;height:24px;padding:0;border:2px solid #f4e9d5;border-radius:50%;background:#a85e45;transform:translate(-50%,-50%);box-shadow:0 0 0 1px #a85e45}.labels-hidden .harbor-name,.labels-hidden .harbor-goods,.labels-hidden .harbor-dot{display:none}.labels-hidden .harbor:hover,.labels-hidden .harbor[aria-pressed=true]{background:#6c4334;box-shadow:0 0 0 3px #f9e7cd}@media(max-width:700px){.tool-details{flex-wrap:wrap}}
+
