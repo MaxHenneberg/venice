@@ -39,9 +39,17 @@ function selectHarbor(index){
     const path=seaPath(ports[origin],ports[index]);if(!path)throw new Error('No navigable route between those harbors.');
     const quote=quoteRoute(origin,index,path);pending={from:origin,to:index,path,quote};
     const good=simulation.ports[origin].good,mismatch=simulation.ports[index].needs!==good;
-    instruction.textContent=`${ports[origin].name} to ${ports[index].name}: ${quote.distance} nautical miles × ${DISTANCE_RATE} ducats = ${quote.distanceCost}, plus ship ${quote.shipCost}; total ${quote.total} ducats.${mismatch?` ${ports[index].name} needs ${simulation.ports[index].needs}; ${good} will be held.`:''}${simulation.balance<quote.total?' Insufficient funds.':''}`;
+    pending.message=`${ports[origin].name} to ${ports[index].name}: ${quote.distance} nautical miles × ${DISTANCE_RATE} ducats = ${quote.distanceCost}, plus ship ${quote.shipCost}; total ${quote.total} ducats.${mismatch?` ${ports[index].name} needs ${simulation.ports[index].needs}; ${good} will be held.`:''}`;
+    refreshQuote();
     confirm.hidden=false;confirm.disabled=simulation.balance<quote.total;
   }catch(error){instruction.textContent=error.message;}
+}
+function refreshQuote(){
+  if(!pending)return;
+  const insufficient=simulation.balance<pending.quote.total;
+  const message=pending.message+(insufficient?' Insufficient funds.':'');
+  if(instruction.textContent!==message)instruction.textContent=message;
+  confirm.disabled=insufficient;
 }
 confirm.addEventListener('click',()=>{
   if(!pending)return;
@@ -62,7 +70,7 @@ function renderRoutes(){
 }
 function updateState(){
   treasury.textContent=`Treasury · ${simulation.balance} ducats`;
-  if(pending)confirm.disabled=simulation.balance<pending.quote.total;
+  refreshQuote();
   updatePorts();
   const placed=[];
   for(const route of simulation.routes){const status=document.querySelector(`.route-row[data-id="${route.id}"] .route-state`);if(status && status.textContent!==routeText(route))status.textContent=routeText(route);const ship=shipLayer.querySelector(`[data-id="${route.id}"]`);if(ship){const p=pointAlong(paths.get(route.id),route.progress);ship.style.left=`${p.x/12}%`;ship.style.top=`${p.y/5.2}%`;const offset=placed.filter(other=>Math.hypot(other.x-p.x,other.y-p.y)<25).length;placed.push(p);ship.style.transform=`translate(-50%, ${10+offset*22}px)`;ship.textContent=`⛵ ${GOOD_INFO[route.good].icon} ${route.cargo}/${CAPACITY} · ${route.status}`;}}
