@@ -27,7 +27,9 @@ function layoutMapStage({ preserveCenter = true, previousZoom = mapZoom } = {}) 
   const centerY = oldWorldHeight ? (mapViewport.scrollTop + mapViewport.clientHeight / 2) / oldWorldHeight : 0.5;
   const mobile = window.matchMedia('(max-width: 700px)').matches;
   const landscapePhone = window.matchMedia('(orientation: landscape) and (max-height: 500px) and (max-width: 1000px)').matches;
-  const responsiveMinimum = landscapePhone ? Math.max(0, (window.innerHeight - 10) * mapAspect) : (mobile ? 1400 : 0);
+  // Fit the full map into short landscape screens at the default zoom. Larger
+  // scales create a scrollable stage only after the player asks to zoom in.
+  const responsiveMinimum = mobile && !landscapePhone ? 1400 : 0;
   mapBaseWidth = Math.max(mapViewport.clientWidth, responsiveMinimum);
   const stageWidth = mapBaseWidth * mapZoom;
   const stageHeight = mapBaseWidth / mapAspect * mapZoom;

@@ -87,7 +87,7 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 .map-zoom-controls button:hover:not(:disabled),.map-zoom-controls button:focus-visible{border-color:#a65b3f;background:#fff9e9;color:#804a35;outline:2px solid #a65b3f;outline-offset:1px}
 .map-zoom-controls button:disabled{opacity:.45;cursor:default}
 .map-zoom-controls output{text-align:center;color:#405e4f;font-size:9px;font-weight:700;font-variant-numeric:tabular-nums}
-@media (orientation:landscape) and (max-height:500px) and (max-width:1000px){.map-viewport{height:calc(100dvh - 10px);overflow-x:auto;overflow-y:hidden}.map-zoom-controls button{min-height:44px}}
+@media (orientation:landscape) and (max-height:500px) and (max-width:1000px){.map-viewport{height:calc(100dvh - 10px);overflow-x:auto;overflow-y:hidden}#game{min-width:0}.map-zoom-controls button{min-height:44px}}
 .harbor{transform:translate(-50%,-100%) scale(var(--map-zoom,1))}
 .labels-hidden .harbor{transform:translate(-50%,-50%) scale(var(--map-zoom,1))}
 .labels-hidden .harbor[aria-pressed=true],.labels-hidden.route-selecting .harbor:not([aria-pressed=true]){transform:translate(-50%,-100%) scale(var(--map-zoom,1))}
