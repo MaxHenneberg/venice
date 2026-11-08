@@ -22,7 +22,7 @@ export function quoteRoute(from,to,path) {
 export const PRODUCTION_SECONDS = 5;
 export const TRAVEL_SECONDS = 12;
 export function createSimulation() {
-  return { balance: STARTING_BALANCE, ports: goods.map((good, i) => ({ good, needs: goods[(i + goods.length - 1) % goods.length], stock: 12, received: 0, clock: 0 })), routes: [], nextId: 1 };
+  return { balance: STARTING_BALANCE, ports: goods.map((good, i) => ({ good, needs: goods[(i + goods.length - 1) % goods.length], stock: 12, received: 0, consumed: 0, clock: 0 })), routes: [], nextId: 1 };
 }
 export function addRoute(state, from, to, path) {
   if (!Number.isInteger(from) || !Number.isInteger(to) || !state.ports[from] || !state.ports[to] || from === to) throw new Error('Choose two different ports.');
@@ -53,7 +53,7 @@ export function advance(state,seconds) {
       }
       if(route.status==='Unloading'){
         route.handling+=dt;
-        if(route.handling+1e-9>=interval){route.handling-=interval;route.cargo--;destination.received++;state.balance+=DELIVERY_REWARD;if(route.cargo===0){route.status='Returning';route.direction=-1;route.handling=0;}}
+        if(route.handling+1e-9>=interval){route.handling-=interval;route.cargo--;destination.received++;destination.consumed++;state.balance+=DELIVERY_REWARD;if(route.cargo===0){route.status='Returning';route.direction=-1;route.handling=0;}}
         continue;
       }
       route.progress+=route.direction*dt/TRAVEL_SECONDS;

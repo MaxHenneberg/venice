@@ -8,8 +8,8 @@ test('loading and unloading handle one unit per good-specific interval', () => {
   assert.equal(r.cargo,0);advance(s,interval-.1);assert.equal(r.cargo,0);advance(s,.1);assert.equal(r.cargo,1);assert.equal(s.ports[0].stock,11);
   advance(s,interval*7);assert.equal(r.cargo,CAPACITY);assert.equal(r.status,'Sailing');
   advance(s,TRAVEL_SECONDS+.1);assert.equal(r.status,'Unloading');assert.equal(s.ports[1].received,0);assert.equal(r.cargo,8);
-  advance(s,interval);assert.equal(s.ports[1].received,1);assert.equal(r.cargo,7);
-  advance(s,interval*7);assert.equal(s.ports[1].received,8);assert.equal(r.cargo,0);assert.equal(r.status,'Returning');
+  advance(s,interval);assert.equal(s.ports[1].received,1);assert.equal(s.ports[1].consumed,1);assert.equal(r.cargo,7);
+  advance(s,interval*7);assert.equal(s.ports[1].received,8);assert.equal(s.ports[1].consumed,8);assert.equal(r.cargo,0);assert.equal(r.status,'Returning');
 });
 test('goods have distinct handling rates and loading never exceeds available stock', () => {
   const s=createSimulation();s.ports[0].stock=2;const glass=addRoute(s,0,1),salt=addRoute(s,1,2);
@@ -33,9 +33,9 @@ test('route price reflects sea distance plus fixed ship cost, and cannot overdra
   s.balance=far.total-1;const nextId=s.nextId;assert.throws(()=>addRoute(s,0,6),/Insufficient funds/);assert.equal(s.balance,far.total-1);assert.equal(s.nextId,nextId);assert.equal(s.routes.length,1);
   removeRoute(s,route.id);assert.equal(s.balance,far.total-1);
 });
-test('only compatible units actually unloaded reward the treasury once',()=>{
+test('only compatible units actually unloaded count as consumed and reward the treasury once',()=>{
   const s=createSimulation(),route=addRoute(s,0,1),afterPurchase=s.balance;advance(s,8*GOOD_INFO.Glass.seconds+TRAVEL_SECONDS+.1);assert.equal(s.balance,afterPurchase);
-  advance(s,GOOD_INFO.Glass.seconds);assert.equal(s.balance,afterPurchase+DELIVERY_REWARD);assert.equal(s.ports[1].received,1);
-  advance(s,GOOD_INFO.Glass.seconds*7);assert.equal(s.balance,afterPurchase+8*DELIVERY_REWARD);advance(s,1);assert.equal(s.balance,afterPurchase+8*DELIVERY_REWARD);
-  const mismatch=createSimulation(),r=addRoute(mismatch,0,2),initial=mismatch.balance;advance(mismatch,8*GOOD_INFO.Glass.seconds+TRAVEL_SECONDS+10);assert.equal(r.status,'Awaiting demand');assert.equal(mismatch.balance,initial);removeRoute(mismatch,r.id);assert.equal(mismatch.balance,initial);
+  advance(s,GOOD_INFO.Glass.seconds);assert.equal(s.balance,afterPurchase+DELIVERY_REWARD);assert.equal(s.ports[1].received,1);assert.equal(s.ports[1].consumed,1);
+  advance(s,GOOD_INFO.Glass.seconds*7);assert.equal(s.balance,afterPurchase+8*DELIVERY_REWARD);assert.equal(s.ports[1].consumed,8);advance(s,1);assert.equal(s.balance,afterPurchase+8*DELIVERY_REWARD);
+  const mismatch=createSimulation(),r=addRoute(mismatch,0,2),initial=mismatch.balance;advance(mismatch,8*GOOD_INFO.Glass.seconds+TRAVEL_SECONDS+10);assert.equal(r.status,'Awaiting demand');assert.equal(mismatch.ports[2].consumed,0);assert.equal(mismatch.balance,initial);removeRoute(mismatch,r.id);assert.equal(mismatch.balance,initial);
 });

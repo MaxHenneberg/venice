@@ -32,3 +32,28 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
   .route-popover{bottom:30px;max-height:calc(100dvh - 50px);overflow:auto}.route-actions button{min-height:44px}
   .harbor::before{content:"";position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%)}
 }
+
+/* Harbor actions orbit the selected town marker without adding another map toolbar. */
+.harbor-radial{position:absolute;z-index:9;width:252px;height:108px;transform:translate(-50%,-50%);pointer-events:none;}
+.harbor-radial[hidden]{display:none}
+.harbor-radial::before{content:"";position:absolute;left:50%;top:50%;width:68px;height:68px;transform:translate(-50%,-50%);border:1px solid #aab9a3;border-radius:50%;background:#edf0e5dd;box-shadow:0 2px 9px #344c3b22}
+.harbor-radial::after{content:"✳";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#a66c50;font-size:20px;pointer-events:none}
+.radial-action{position:absolute;display:flex;align-items:center;gap:7px;width:118px;min-height:42px;padding:7px 9px;border:1px solid #bdcbb8;border-radius:4px;background:#f8f8ef;color:#405e4f;box-shadow:0 4px 12px #344c3b35;font:700 10px/1.25 "DM Sans",sans-serif;text-align:left;cursor:pointer;pointer-events:auto}
+.radial-action:first-child{left:0;top:1px}.radial-action:last-child{right:0;bottom:1px}
+.radial-action:hover,.radial-action:focus-visible{border-color:#a65b3f;background:#fff9e9;color:#804a35;outline:2px solid #a65b3f;outline-offset:2px}
+.radial-glyph{display:grid;place-items:center;flex:none;width:23px;height:23px;border-radius:50%;background:#e6eadc;color:#a65b3f;font-size:15px}
+.town-info-popover{position:absolute;z-index:10;width:min(340px,calc(100vw - 28px));max-height:min(360px,calc(100dvh - 28px));overflow:auto;padding:18px 18px 15px;border:1px solid #a9bba5;background:#f8f8f0;box-shadow:0 8px 26px #30483b45;color:#365448}
+.town-info-popover[hidden]{display:none}.town-info-popover h2{padding-right:28px;margin:2px 0 13px;font:400 25px/1.1 "DM Serif Display",Georgia,serif}
+.town-info-kicker{font-size:9px;font-weight:700;letter-spacing:.18em;color:#a66c50}
+.town-info-close{position:absolute;right:9px;top:8px;width:32px;height:32px;border:1px solid #cbd5c3;background:#f1f1e7;color:#546e60;font:24px/1 "DM Sans",sans-serif;cursor:pointer}
+.town-info-close:hover,.town-info-close:focus-visible{border-color:#a65b3f;color:#804a35;outline:2px solid #a65b3f;outline-offset:2px}
+.town-stat{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-top:1px solid #dce2d6}
+.town-stat-icon{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:50%;background:#e8ebdf;color:#a65b3f;font-size:8px;font-weight:700;letter-spacing:.08em}
+.town-stat>div{display:grid;gap:4px;min-width:0}.town-stat strong{font-size:12px;line-height:1.4;color:#405e4f}.town-stat-detail{font-size:11px;line-height:1.45;color:#78897b;overflow-wrap:anywhere}
+.town-stat-note{padding-top:8px;border-top:1px solid #dce2d6;color:#8a796a;font:italic 11px/1.45 Georgia,serif}
+.town-info-popover :focus-visible{outline:2px solid #a65b3f;outline-offset:2px}
+@media(max-width:700px){.harbor-radial{width:210px;height:100px}.radial-action{width:100px;min-height:44px;font-size:9px}.town-info-popover{padding:15px;width:min(320px,calc(100vw - 20px))}.town-info-popover h2{font-size:23px}}
+@media (orientation:landscape) and (max-height:500px) and (max-width:1000px){.harbor-radial{width:226px;height:92px}.radial-action{width:108px;min-height:44px;padding:6px;font-size:9px}.town-info-popover{max-height:calc(100dvh - 20px);padding:12px}.town-info-popover h2{font-size:20px;margin-bottom:7px}.town-stat{padding:7px 0}.town-stat-detail{font-size:10px}}
+
+/* Keep map overlays in one stacking context so the radial actions outrank the toolbar. */
+.map-shell{isolation:isolate}

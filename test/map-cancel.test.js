@@ -15,18 +15,19 @@ test('non-harbor map clicks and taps cancel origin and quote without interfering
       const page=await browser.newPage({viewport:entry.size,hasTouch:entry.touch,isMobile:entry.touch});await page.goto(url);await page.locator('canvas').waitFor();
       const venice=page.getByRole('button',{name:/Venezia: produces Glass/}),ragusa=page.getByRole('button',{name:/Ragusa: produces Salt/}),viewport=page.locator('.map-viewport');
       const activate=locator=>entry.touch?locator.tap():locator.click();
+      const beginRoute=async harbor=>{await activate(harbor);await activate(page.getByRole('button',{name:'Create Trade Route'}));};
       async function openWater(){
         const box=await viewport.boundingBox(),point={x:box.x+12,y:box.y+Math.min(200,box.height/2)};
         const target=await page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.tagName,point);assert.equal(target,'CANVAS');
         if(entry.touch)await page.touchscreen.tap(point.x,point.y);else await page.mouse.click(point.x,point.y);
       }
-      await activate(venice);assert.match(await page.locator('#map-help-text').innerText(),/From Venezia/);
+      await beginRoute(venice);assert.match(await page.locator('#map-help-text').innerText(),/From Venezia/);
       await openWater();assert.match(await page.locator('#map-announcement').textContent(),/cancelled/i,`${entry.touch?'touch':'mouse'} origin cancellation`);assert.equal(await venice.getAttribute('aria-pressed'),'false');
-      await activate(venice);await activate(ragusa);assert.equal(await page.locator('#route-popover').isVisible(),true);const balance=await page.locator('#treasury').innerText();
+      await beginRoute(venice);await activate(ragusa);assert.equal(await page.locator('#route-popover').isVisible(),true);const balance=await page.locator('#treasury').innerText();
       await openWater();assert.equal(await page.locator('#route-popover').isHidden(),true);assert.equal(await page.locator('#treasury').innerText(),balance);assert.equal(await venice.getAttribute('aria-pressed'),'false');
-      await activate(venice);await activate(ragusa);assert.equal(await page.locator('#route-popover').isVisible(),true);
+      await beginRoute(venice);await activate(ragusa);assert.equal(await page.locator('#route-popover').isVisible(),true);
       await activate(page.locator('#map-instruction'));assert.equal(await page.locator('#route-popover').isHidden(),true);assert.equal(await page.locator('#treasury').innerText(),balance);
-      await activate(venice);const menu=page.locator('#landscape-menu-toggle');if(await menu.isVisible())await activate(menu);const labels=page.locator('#harbor-labels-toggle');await activate(labels);assert.equal(await venice.getAttribute('aria-pressed'),'true');assert.equal(await labels.getAttribute('aria-pressed'),'true');
+      await activate(venice);const menu=page.locator('#landscape-menu-toggle');if(await menu.isVisible())await activate(menu);const labels=page.locator('#harbor-labels-toggle');await activate(labels);assert.equal(await venice.getAttribute('aria-pressed'),'false');assert.equal(await labels.getAttribute('aria-pressed'),'true');
       await page.close();
     }
   }finally{await browser.close();await server.close();}
