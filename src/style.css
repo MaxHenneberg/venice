@@ -34,14 +34,14 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 }
 
 /* Harbor actions orbit the selected town marker without adding another map toolbar. */
-.harbor-radial{position:absolute;z-index:9;width:276px;height:118px;transform:translate(-50%,-50%);pointer-events:none;}
+.harbor-radial{position:absolute;z-index:9;width:202px;height:156px;transform:translate(-50%,-50%);pointer-events:none;}
 .harbor-radial[hidden]{display:none}
-.harbor-radial::before{content:"";position:absolute;left:50%;top:50%;width:68px;height:68px;transform:translate(-50%,-50%);border:1px solid #aab9a3;border-radius:50%;background:#edf0e5dd;box-shadow:0 2px 9px #344c3b22}
-.harbor-radial::after{content:"✳";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#a66c50;font-size:20px;pointer-events:none}
-.radial-action{position:absolute;display:flex;align-items:center;gap:7px;width:118px;min-height:42px;padding:7px 9px;border:1px solid #bdcbb8;border-radius:4px;background:#f8f8ef;color:#405e4f;box-shadow:0 4px 12px #344c3b35;font:700 10px/1.25 "DM Sans",sans-serif;text-align:left;cursor:pointer;pointer-events:auto}
-.radial-action:first-child{left:0;top:1px}.radial-action:nth-child(2){right:0;top:1px}.radial-action:nth-child(3){left:50%;bottom:1px;transform:translateX(-50%)}
+.harbor-radial::before{content:"";position:absolute;left:50%;top:50%;width:94px;height:34px;transform:translate(-50%,-50%);border:1px solid #aab9a3;border-radius:999px;background:#edf0e5f5;box-shadow:0 2px 9px #344c3b35}
+.radial-town-name{position:absolute;left:50%;top:50%;z-index:1;display:grid;place-items:center;max-width:88px;min-height:30px;transform:translate(-50%,-50%);color:#365448;font:700 8px/1.15 "DM Sans",sans-serif;letter-spacing:.04em;text-align:center;text-transform:uppercase;pointer-events:none}
+.radial-action{position:absolute;display:grid;place-items:center;width:42px;height:42px;padding:0;border:1px solid #bdcbb8;border-radius:50%;background:#f8f8ef;color:#405e4f;box-shadow:0 4px 12px #344c3b35;cursor:pointer;pointer-events:auto}
+.radial-action#town-info-action{left:12px;top:10px}.radial-action#create-route-action{right:12px;top:10px}.radial-action:not(#town-info-action):not(#create-route-action){left:50%;bottom:10px;transform:translateX(-50%)}
 .radial-action:hover,.radial-action:focus-visible{border-color:#a65b3f;background:#fff9e9;color:#804a35;outline:2px solid #a65b3f;outline-offset:2px}
-.radial-glyph{display:grid;place-items:center;flex:none;width:23px;height:23px;border-radius:50%;background:#e6eadc;color:#a65b3f;font-size:15px}
+.radial-glyph{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#e6eadc;color:#a65b3f;font-size:17px;line-height:1}
 .town-info-popover{position:absolute;z-index:10;width:min(340px,calc(100vw - 28px));max-height:min(360px,calc(100dvh - 28px));overflow:auto;padding:18px 18px 15px;border:1px solid #a9bba5;background:#f8f8f0;box-shadow:0 8px 26px #30483b45;color:#365448}
 .town-info-popover[hidden]{display:none}.town-info-popover h2{padding-right:28px;margin:2px 0 13px;font:400 25px/1.1 "DM Serif Display",Georgia,serif}
 .town-info-kicker{font-size:9px;font-weight:700;letter-spacing:.18em;color:#a66c50}
@@ -52,8 +52,8 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 .town-stat>div{display:grid;gap:4px;min-width:0}.town-stat strong{font-size:12px;line-height:1.4;color:#405e4f}.town-stat-detail{font-size:11px;line-height:1.45;color:#78897b;overflow-wrap:anywhere}
 .town-stat-note{padding-top:8px;border-top:1px solid #dce2d6;color:#8a796a;font:italic 11px/1.45 Georgia,serif}
 .town-info-popover :focus-visible{outline:2px solid #a65b3f;outline-offset:2px}
-@media(max-width:700px){.harbor-radial{width:210px;height:100px}.radial-action{width:100px;min-height:44px;font-size:9px}.town-info-popover{padding:15px;width:min(320px,calc(100vw - 20px))}.town-info-popover h2{font-size:23px}}
-@media (orientation:landscape) and (max-height:500px) and (max-width:1000px){.harbor-radial{width:226px;height:92px}.radial-action{width:108px;min-height:44px;padding:6px;font-size:9px}.town-info-popover{max-height:calc(100dvh - 20px);padding:12px}.town-info-popover h2{font-size:20px;margin-bottom:7px}.town-stat{padding:7px 0}.town-stat-detail{font-size:10px}}
+@media(max-width:700px){.harbor-radial{width:202px;height:156px}.radial-action{width:44px;height:44px}.town-info-popover{padding:15px;width:min(320px,calc(100vw - 20px))}.town-info-popover h2{font-size:23px}}
+@media (orientation:landscape) and (max-height:500px) and (max-width:1000px){.harbor-radial{width:202px;height:156px}.radial-action{width:44px;height:44px}.town-info-popover{max-height:calc(100dvh - 20px);padding:12px}.town-info-popover h2{font-size:20px;margin-bottom:7px}.town-stat{padding:7px 0}.town-stat-detail{font-size:10px}}
 
 /* Keep map overlays in one stacking context so the radial actions outrank the toolbar. */
 .map-shell{isolation:isolate}
@@ -76,3 +76,53 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 .town-build-panel{display:flex;flex-direction:column;gap:8px;min-width:0;padding:11px;background:#f3f0e4;border:1px solid #c7bea5;overflow:auto}.production-label{color:#59715f;font:700 9px "DM Sans",sans-serif}.production-choice{width:100%;min-height:38px;padding:6px 8px;border:1px solid #a9bba5;background:#e6eadf;color:#405e4f;font:600 10px "DM Sans",sans-serif}.production-choice:focus-visible{outline:2px solid #a65b3f;outline-offset:2px}.production-description{margin:0;color:#718174;font:italic 9px/1.45 Georgia,serif}.town-view-feedback{min-height:30px;color:#657d6e;font:italic 10px/1.45 Georgia,serif}.town-building-list{border-top:1px solid #d3d7c8;padding-top:8px}.town-building-list ul{list-style:none;margin:5px 0 0;padding:0}.town-building-list li{padding:4px 0;border-bottom:1px solid #dfdece;color:#516b5c;font-size:9px;line-height:1.4}
 @media(max-width:700px){.town-view-header{gap:8px;min-height:58px;padding:7px}.town-view-header h2{font-size:20px}.town-view-ledger{gap:4px}.town-view-ledger span{font-size:8px;padding:5px}.town-view-body{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(210px,1fr) auto;gap:6px;padding:6px}.town-board-wrap{min-height:210px}.town-build-panel{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:5px;padding:7px}.town-panel-kicker{grid-column:1/-1}.production-label,.production-choice,.production-description,.town-view-feedback,.town-building-list{grid-column:1/-1}.town-view-feedback{min-height:0}.town-building-list ul{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}}
 @media(orientation:landscape) and (max-height:500px) and (max-width:1000px){.town-view-header{min-height:48px;padding:4px 9px}.town-view-header h2{font-size:18px}.town-view-kicker{font-size:7px}.town-view-body{grid-template-columns:minmax(0,1fr) 190px;padding:6px;gap:6px}.town-build-panel{gap:5px;padding:7px}.town-board-wrap{min-height:0}.town-building-list li{font-size:8px}}
+
+/* Let the cartographic frame use wide desktop screens; zoom scales the map and its harbor/ship overlays together. */
+.app{width:100%;max-width:none}
+.map-viewport{overflow:auto}
+#map-zoom-spacer{position:relative;flex:none}
+#game{position:absolute;left:0;top:0}
+.map-zoom-controls{display:grid;grid-template-columns:32px minmax(30px,1fr) 32px 32px;align-items:center;gap:3px;width:100%}
+.map-zoom-controls button{min-width:0;min-height:30px;padding:0;border:1px solid #ccd7c6;background:#f8f8ef;color:#546e60;font:700 17px/1 "DM Sans",sans-serif;cursor:pointer}
+.map-zoom-controls button:hover:not(:disabled),.map-zoom-controls button:focus-visible{border-color:#a65b3f;background:#fff9e9;color:#804a35;outline:2px solid #a65b3f;outline-offset:1px}
+.map-zoom-controls button:disabled{opacity:.45;cursor:default}
+.map-zoom-controls output{text-align:center;color:#405e4f;font-size:9px;font-weight:700;font-variant-numeric:tabular-nums}
+@media (orientation:landscape) and (max-height:500px) and (max-width:1000px){.map-viewport{height:calc(100dvh - 10px);overflow-x:auto;overflow-y:hidden}#game{min-width:0}.map-zoom-controls button{min-height:44px}}
+.harbor{transform:translate(-50%,-100%) scale(var(--map-zoom,1))}
+.labels-hidden .harbor{transform:translate(-50%,-50%) scale(var(--map-zoom,1))}
+.labels-hidden .harbor[aria-pressed=true],.labels-hidden.route-selecting .harbor:not([aria-pressed=true]){transform:translate(-50%,-100%) scale(var(--map-zoom,1))}
+.ship-label{font-size:calc(10px * var(--map-zoom,1));padding:calc(3px * var(--map-zoom,1)) calc(5px * var(--map-zoom,1))}
+/* Captain's trade office HUD: a warm, legible in-world ledger with live fleet status. */
+.map-tools.trade-hud{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:0;width:clamp(214px,19vw,250px);max-width:min(250px,calc(100vw - 24px));padding:0;overflow:visible;border:1px solid #adac8a;border-radius:9px;background:#f1eddb;box-shadow:0 8px 22px #263e3450,inset 0 0 0 3px #e5dfc9;}
+.trade-hud-heading{display:flex;align-items:center;gap:9px;padding:11px 12px 10px;background:linear-gradient(115deg,#344f43,#506c57);border-radius:8px 8px 0 0;border-bottom:1px solid #927b5d;color:#f7efd9;}
+.trade-hud-emblem{display:grid;place-items:center;width:32px;height:32px;flex:none;border:1px solid #cfb783;border-radius:50%;background:#f0e6c9;color:#7f6541;font-size:18px;box-shadow:0 0 0 3px #f0e6c91a;}
+.trade-hud-ledger{display:flex;min-width:0;flex-direction:column;gap:3px;}
+.trade-hud-kicker{font:700 8px/1.2 "DM Sans",sans-serif;letter-spacing:.19em;color:#dbc99f;white-space:nowrap;}
+#treasury{align-self:flex-start;white-space:nowrap;color:#fff7df;font:600 12px/1.3 "DM Sans",sans-serif;letter-spacing:.015em;}
+.trade-hud-heading #landscape-menu-toggle{display:none;margin-left:auto;min-width:44px;min-height:44px;border:1px solid #d1c394;border-radius:6px;background:#f6f0dc;color:#43594a;font:700 12px "DM Sans",sans-serif;cursor:pointer;}
+.trade-hud-fleet{padding:9px 11px 7px;border-bottom:1px solid #d1cbb3;background:linear-gradient(180deg,#f7f3e3,#eee9d7);}
+.trade-hud-fleet-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;color:#88744e;font:700 8px/1.2 "DM Sans",sans-serif;letter-spacing:.16em;}
+#fleet-count{padding:3px 6px;border:1px solid #c4b582;border-radius:999px;background:#e8ddba;color:#5e6044;font:700 8px "DM Sans",sans-serif;letter-spacing:.04em;white-space:nowrap;}
+#fleet-voyages{display:flex;flex-direction:column;gap:4px;max-height:clamp(38px,11vh,92px);overflow:auto;scrollbar-color:#b8ad86 transparent;scrollbar-width:thin;}
+.fleet-idle{margin:0;padding:3px 0;color:#7e8976;font:italic 10px Georgia,serif;}
+.fleet-voyage{display:flex;flex-direction:column;gap:2px;padding:5px 7px;border-left:2px solid #ad7652;border-radius:0 4px 4px 0;background:#e8e5d4;color:#405748;}
+.fleet-voyage-route{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 9px "DM Sans",sans-serif;letter-spacing:.02em;}
+.fleet-voyage-status{color:#7a775f;font:600 8px "DM Sans",sans-serif;letter-spacing:.03em;}
+.trade-hud-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:8px 9px 9px;background:#e8e4d2;}
+.trade-hud-controls>button,.trade-hud-controls .goods-control>button,.trade-hud-controls .voyages-control>button{display:flex;width:100%;min-height:48px;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 3px;border:1px solid #c1b999;border-radius:5px;background:linear-gradient(180deg,#f8f5e8,#ece8d8);color:#506551;cursor:pointer;white-space:normal;font:700 8px/1.15 "DM Sans",sans-serif;letter-spacing:.025em;box-shadow:0 1px 2px #384c3412;}
+.trade-hud-controls>button:hover,.trade-hud-controls .goods-control>button:hover,.trade-hud-controls .voyages-control>button:hover,.trade-hud-controls>button[aria-pressed=true]{border-color:#a9714e;background:#fff7df;color:#784e38;}
+.trade-hud-controls .goods-control,.trade-hud-controls .voyages-control{position:relative;min-width:0;}
+.hud-control-icon{color:#a86a49;font-size:16px;line-height:1;}
+.trade-hud-controls .voyages-control>button span:last-child{display:flex;align-items:center;gap:3px;}
+.trade-hud-controls .voyages-control b{display:inline-grid;place-items:center;min-width:14px;height:14px;padding:0 3px;border-radius:999px;background:#b36c4c;color:#fff7e2;font-size:8px;}
+.trade-hud-controls .tool-panel{right:0;top:calc(100% + 7px);z-index:10;border:1px solid #b9ad89;border-radius:6px;background:#f8f4e5;box-shadow:0 8px 20px #263e3440;}
+.trade-hud:focus-within{box-shadow:0 8px 22px #263e3450,0 0 0 2px #e8d0a6;}
+@media(max-width:700px){.map-tools.trade-hud{width:clamp(210px,58vw,250px);max-width:calc(100vw - 18px);right:6px;border-radius:7px}.trade-hud-heading{padding:8px 9px}.trade-hud-emblem{width:29px;height:29px}.trade-hud-fleet{padding:7px 9px 6px}#fleet-voyages{max-height:56px}.trade-hud-controls{gap:4px;padding:6px}.trade-hud-controls>button,.trade-hud-controls .goods-control>button,.trade-hud-controls .voyages-control>button{min-height:44px;font-size:8px}.trade-hud-heading #landscape-menu-toggle{display:none}#landscape-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.trade-hud-heading #landscape-menu-toggle span{font-size:8px}}
+@media(orientation:landscape) and (max-height:500px) and (max-width:1000px){.map-tools.trade-hud{max-width:180px;width:180px}.trade-hud-heading{width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:4px 6px;gap:6px}.trade-hud-ledger{min-width:0}.trade-hud-emblem{display:none}.trade-hud-kicker{display:none}#treasury{font-size:10px}.trade-hud-fleet{width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:5px 7px 4px}.trade-hud-fleet-heading{min-width:0;margin-bottom:2px}#fleet-voyages{max-height:35px}.trade-hud-controls{width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:4px;gap:3px}.trade-hud-controls>button,.trade-hud-controls .goods-control>button,.trade-hud-controls .voyages-control>button{min-height:44px}.trade-hud-heading #landscape-menu-toggle{display:block;flex:0 0 44px;width:44px;min-width:44px;max-width:44px;height:44px;min-height:44px;padding:0;overflow:hidden;white-space:nowrap;font-size:0!important;line-height:0}.trade-hud-heading #landscape-menu-toggle span:first-child{display:grid;place-items:center;font-size:18px!important;line-height:1}.trade-hud-heading #landscape-menu-toggle span:last-child{display:none!important}#landscape-controls:not(.is-open){display:none}.trade-hud-controls .tool-panel{top:auto;bottom:calc(100% + 6px)}.trade-hud-zoom{width:100%;max-width:100%;min-width:0;box-sizing:border-box;justify-content:center;overflow:hidden}.trade-hud-zoom .trade-hud-scale-label{display:none}.trade-hud-zoom .map-zoom-controls{max-width:100%;min-width:0}}
+@media(max-width:700px) and (orientation:portrait){.map-tools.trade-hud{top:auto;bottom:10px}}
+.trade-hud-zoom{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 9px 8px;background:#f1eddb;border-top:1px solid #d1cbb3;border-radius:0 0 8px 8px}
+.trade-hud-scale-label{font:700 8px/1.2 "DM Sans",sans-serif;letter-spacing:.19em;color:#88744e;white-space:nowrap}
+.trade-hud-zoom .map-zoom-controls{width:132px;grid-template-columns:30px minmax(28px,1fr) 30px 30px}
+.trade-hud-zoom .map-zoom-controls button{min-height:30px}
+@media(max-width:700px){.trade-hud-zoom{padding:5px 7px 7px}.trade-hud-zoom .map-zoom-controls{width:128px}}
+@media(orientation:landscape) and (max-height:500px) and (max-width:1000px){.trade-hud-zoom{padding:4px 6px 6px}.trade-hud-zoom .map-zoom-controls{width:122px}.trade-hud-zoom .map-zoom-controls button{min-height:36px}}
