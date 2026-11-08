@@ -76,3 +76,19 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 .town-build-panel{display:flex;flex-direction:column;gap:8px;min-width:0;padding:11px;background:#f3f0e4;border:1px solid #c7bea5;overflow:auto}.production-label{color:#59715f;font:700 9px "DM Sans",sans-serif}.production-choice{width:100%;min-height:38px;padding:6px 8px;border:1px solid #a9bba5;background:#e6eadf;color:#405e4f;font:600 10px "DM Sans",sans-serif}.production-choice:focus-visible{outline:2px solid #a65b3f;outline-offset:2px}.production-description{margin:0;color:#718174;font:italic 9px/1.45 Georgia,serif}.town-view-feedback{min-height:30px;color:#657d6e;font:italic 10px/1.45 Georgia,serif}.town-building-list{border-top:1px solid #d3d7c8;padding-top:8px}.town-building-list ul{list-style:none;margin:5px 0 0;padding:0}.town-building-list li{padding:4px 0;border-bottom:1px solid #dfdece;color:#516b5c;font-size:9px;line-height:1.4}
 @media(max-width:700px){.town-view-header{gap:8px;min-height:58px;padding:7px}.town-view-header h2{font-size:20px}.town-view-ledger{gap:4px}.town-view-ledger span{font-size:8px;padding:5px}.town-view-body{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(210px,1fr) auto;gap:6px;padding:6px}.town-board-wrap{min-height:210px}.town-build-panel{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:5px;padding:7px}.town-panel-kicker{grid-column:1/-1}.production-label,.production-choice,.production-description,.town-view-feedback,.town-building-list{grid-column:1/-1}.town-view-feedback{min-height:0}.town-building-list ul{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}}
 @media(orientation:landscape) and (max-height:500px) and (max-width:1000px){.town-view-header{min-height:48px;padding:4px 9px}.town-view-header h2{font-size:18px}.town-view-kicker{font-size:7px}.town-view-body{grid-template-columns:minmax(0,1fr) 190px;padding:6px;gap:6px}.town-build-panel{gap:5px;padding:7px}.town-board-wrap{min-height:0}.town-building-list li{font-size:8px}}
+
+/* Let the cartographic frame use wide desktop screens; zoom scales the map and its harbor/ship overlays together. */
+.app{width:100%;max-width:none}
+.map-viewport{overflow:auto}
+#map-zoom-spacer{position:relative;flex:none}
+#game{position:absolute;left:0;top:0}
+.map-zoom-controls{display:grid;grid-template-columns:32px minmax(30px,1fr) 32px 32px;align-items:center;gap:3px;width:100%}
+.map-zoom-controls button{min-width:0;min-height:30px;padding:0;border:1px solid #ccd7c6;background:#f8f8ef;color:#546e60;font:700 17px/1 "DM Sans",sans-serif;cursor:pointer}
+.map-zoom-controls button:hover:not(:disabled),.map-zoom-controls button:focus-visible{border-color:#a65b3f;background:#fff9e9;color:#804a35;outline:2px solid #a65b3f;outline-offset:1px}
+.map-zoom-controls button:disabled{opacity:.45;cursor:default}
+.map-zoom-controls output{text-align:center;color:#405e4f;font-size:9px;font-weight:700;font-variant-numeric:tabular-nums}
+@media (orientation:landscape) and (max-height:500px) and (max-width:1000px){.map-viewport{height:calc(100dvh - 10px);overflow-x:auto;overflow-y:hidden}.map-zoom-controls button{min-height:44px}}
+.harbor{transform:translate(-50%,-100%) scale(var(--map-zoom,1))}
+.labels-hidden .harbor{transform:translate(-50%,-50%) scale(var(--map-zoom,1))}
+.labels-hidden .harbor[aria-pressed=true],.labels-hidden.route-selecting .harbor:not([aria-pressed=true]){transform:translate(-50%,-100%) scale(var(--map-zoom,1))}
+.ship-label{font-size:calc(10px * var(--map-zoom,1));padding:calc(3px * var(--map-zoom,1)) calc(5px * var(--map-zoom,1))}
