@@ -129,3 +129,19 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 @media(max-width:700px){.trade-hud-zoom{padding:5px 7px 7px}.trade-hud-zoom .map-zoom-controls{width:128px}}
 @media(orientation:landscape) and (max-height:500px) and (max-width:1000px){.trade-hud-zoom{padding:4px 6px 6px}.trade-hud-zoom .map-zoom-controls{width:122px}.trade-hud-zoom .map-zoom-controls button{min-height:36px}}
 
+/* Population needs use one segment per requested point so the happiness thresholds are visible at a glance. */
+.pop-needs{display:grid;gap:3px;margin-top:4px;min-width:0}
+.pop-need{display:grid;grid-template-columns:74px minmax(0,1fr) auto;align-items:center;gap:5px;min-width:0}
+.pop-need-name,.pop-need-count{font-size:9px;line-height:1.2;color:#596d60}
+.pop-need-count{white-space:nowrap;font-variant-numeric:tabular-nums}
+.pop-need-meter{display:flex;gap:2px;min-width:0;height:8px;align-items:stretch}
+.pop-need-segment{flex:1 1 0;min-width:2px;border-radius:2px;background:#d8ddd5}
+.pop-need-segment.is-unhappy{background:#edc9c2}
+.pop-need-segment.is-happy{background:#d4e1ce}
+.pop-need-segment.is-neutral{background:#d8ddd5}
+.pop-need-segment.is-unhappy.is-filled{background:#b94d3d}
+.pop-need-segment.is-happy.is-filled{background:#4f7a4a}
+.pop-need-segment.is-neutral.is-filled{background:#899287}
+.pop-tier-goal{display:block;margin-top:3px}
+@media(max-width:700px){.pop-need{grid-template-columns:68px minmax(0,1fr) auto;gap:4px}.pop-need-name,.pop-need-count{font-size:9px}.pop-need-meter{gap:1px;height:7px}.pop-need-segment{min-width:1.5px}}
+

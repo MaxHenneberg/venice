@@ -6,7 +6,7 @@ import { createSimulation, addRoute, removeRoute, advance, quoteRoute, placeProd
 import { seaPath, pointAlong } from './sea-routes.js';
 import { BUILDING_TYPES, getTownGoods, stockForGood } from './town-economy.js';
 import { drawVeniceBoard } from './town-map.js';
-import { POPULATION_TIERS, NEEDS, populationTotal, populationProgress, createGoodPriorities } from './population.js';
+import { POPULATION_TIERS, NEEDS, NEED_POINTS, UNHAPPY_NEED_THRESHOLD, HAPPY_NEED_THRESHOLD, populationTotal, populationProgress, createGoodPriorities } from './population.js';
 
 const mapViewport = document.querySelector('.map-viewport');
 const mapWorld = document.querySelector('#map-zoom-spacer');
@@ -167,25 +167,42 @@ function positionTownInfo(index){
   }
   townInfo.style.left=`${left}px`;townInfo.style.top=`${top}px`;
 }
+function renderNeedMeters(tier, residents, latest){
+  const needs=document.createElement('div');needs.className='pop-needs';needs.setAttribute('role','group');needs.setAttribute('aria-label',`${tier} need point supply`);
+  for(const need of NEEDS){
+    const requested=residents*NEED_POINTS[tier][need],supplied=Math.min(requested,Math.max(0,Math.round(latest.served?.[need]??0)));
+    const row=document.createElement('div');row.className='pop-need';row.dataset.need=need;
+    const name=document.createElement('span');name.className='pop-need-name';name.textContent=need;
+    const meter=document.createElement('span');meter.className='pop-need-meter';meter.setAttribute('role','img');meter.setAttribute('aria-label',`${need}: ${supplied} of ${requested} need points supplied`);
+    for(let point=0;point<requested;point++){
+      const midpoint=(point+0.5)/Math.max(1,requested),band=midpoint<UNHAPPY_NEED_THRESHOLD?'unhappy':midpoint<HAPPY_NEED_THRESHOLD?'happy':'neutral';
+      const segment=document.createElement('span');segment.className=`pop-need-segment is-${band}${point<supplied?' is-filled':''}`;segment.dataset.band=band;segment.setAttribute('aria-hidden','true');meter.append(segment);
+    }
+    const count=document.createElement('span');count.className='pop-need-count';count.textContent=`${supplied}/${requested} pts`;
+    row.append(name,meter,count);needs.append(row);
+  }
+  return needs;
+}
 function renderPopulation(port, root, totalLabel, cycleLabel){
   if(!port?.population||!root)return;
   const population=port.population; if(totalLabel)totalLabel.textContent=`${populationTotal(population)} residents · ${POPULATION_TIERS.reduce((sum,tier)=>sum+population.housing[tier],0)} homes`;
   root.replaceChildren();
   for(const tier of POPULATION_TIERS){
     const latest=population.lastCycle[tier],progress=populationProgress(population,tier);
-    const row=document.createElement('div');row.className='pop-tier';
+    const row=document.createElement('div');row.className='pop-tier';row.dataset.tier=tier;
     const label=document.createElement('div');label.className='pop-tier-label';
     const name=document.createElement('strong');name.textContent=tier;
     const residents=document.createElement('span');residents.textContent=`${population.residents[tier]} / ${population.housing[tier]} homes`;
     label.append(name,residents);
     const meter=document.createElement('div');meter.className='pop-meter';meter.setAttribute('role','img');meter.setAttribute('aria-label',latest.happiness===null?`${tier}: no households`:`${tier} household happiness ${Math.round(latest.happiness)} percent`);
     const fill=document.createElement('span');fill.style.width=`${Math.max(0,Math.min(100,latest.happiness??0))}%`;meter.append(fill);
-    const detail=document.createElement('small');detail.className='pop-tier-detail';
-    if(latest.happiness===null)detail.textContent='No households yet';
-    else {
-      const needs=NEEDS.map(need=>`${need} ${Math.round(latest.served[need])}/${latest.demand[need]}`).join(' · ');
+    const detail=document.createElement('div');detail.className='pop-tier-detail';
+    if(latest.happiness===null)detail.textContent=population.residents[tier]===0?'No households yet':'Needs update after first 30-second cycle';
+    else detail.textContent=`${Math.round(latest.happiness)}% happy`;
+    detail.append(renderNeedMeters(tier,population.residents[tier],latest));
+    if(latest.happiness!==null){
       const goal=progress.filter(item=>item.count>0||item.blocker).map(item=>`${item.action} ${item.count}/${item.target}${item.blocker?` · ${item.blocker}`:''}`).join(' · ');
-      detail.textContent=`${Math.round(latest.happiness)}% happy · ${needs}${goal?` · ${goal}`:''}`;
+      if(goal){const status=document.createElement('span');status.className='pop-tier-goal';status.textContent=goal;detail.append(status);}
     }
     row.append(label,meter,detail);root.append(row);
   }

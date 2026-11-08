@@ -1,5 +1,7 @@
 export const POPULATION_TIERS = ['Low', 'Common', 'Upper'];
 export const NEEDS = ['Food', 'Comfort', 'Entertainment'];
+export const UNHAPPY_NEED_THRESHOLD = 0.4;
+export const HAPPY_NEED_THRESHOLD = 0.6;
 export const NEED_POINTS = {
   Low: { Food: 4, Comfort: 2, Entertainment: 2 },
   Common: { Food: 6, Comfort: 4, Entertainment: 2 },
