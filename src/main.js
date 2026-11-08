@@ -28,10 +28,11 @@ const voyagesToggle=document.querySelector('#voyages-toggle'), voyagesPanel=docu
 voyagesToggle.addEventListener('click',()=>{const expanded=voyagesToggle.getAttribute('aria-expanded')==='true';voyagesToggle.setAttribute('aria-expanded',String(!expanded));voyagesPanel.hidden=expanded;});
 let origin=null,pending=null,scene,activeTown=null,townViewPort=null,selectedBuilding='glassworks';
 const radialMenu=document.createElement('div');radialMenu.className='harbor-radial';radialMenu.hidden=true;radialMenu.setAttribute('role','group');radialMenu.setAttribute('aria-label','Town actions');
-const townInfoButton=document.createElement('button');townInfoButton.type='button';townInfoButton.id='town-info-action';townInfoButton.className='radial-action';townInfoButton.innerHTML='<span class="radial-glyph" aria-hidden="true">◉</span><span>Town Info</span>';
-const tradeButton=document.createElement('button');tradeButton.type='button';tradeButton.id='create-route-action';tradeButton.className='radial-action';tradeButton.innerHTML='<span class="radial-glyph" aria-hidden="true">↗</span><span>Create Trade Route</span>';
-const townViewButton=document.createElement('button');townViewButton.type='button';townViewButton.className='radial-action';townViewButton.innerHTML='<span class="radial-glyph" aria-hidden="true">⌂</span><span>Open Town View</span>';
-radialMenu.append(townInfoButton,tradeButton);mapShell.append(radialMenu);
+const radialTownName=document.createElement('span');radialTownName.className='radial-town-name';radialTownName.setAttribute('aria-hidden','true');
+const townInfoButton=document.createElement('button');townInfoButton.type='button';townInfoButton.id='town-info-action';townInfoButton.className='radial-action';townInfoButton.setAttribute('aria-label','Town Info');townInfoButton.title='Town Info';townInfoButton.innerHTML='<span class="radial-glyph" aria-hidden="true">ⓘ</span>';
+const tradeButton=document.createElement('button');tradeButton.type='button';tradeButton.id='create-route-action';tradeButton.className='radial-action';tradeButton.setAttribute('aria-label','Create Trade Route');tradeButton.title='Create Trade Route';tradeButton.innerHTML='<span class="radial-glyph" aria-hidden="true">↗</span>';
+const townViewButton=document.createElement('button');townViewButton.type='button';townViewButton.className='radial-action';townViewButton.setAttribute('aria-label','Open Town View');townViewButton.title='Open Town View';townViewButton.innerHTML='<span class="radial-glyph" aria-hidden="true">⌂</span>';
+radialMenu.append(radialTownName,townInfoButton,tradeButton);mapShell.append(radialMenu);
 const portButtons=ports.map((port,index)=>{
   const button=document.createElement('button');button.type='button';button.className='harbor';button.style.left=`${port.x/12}%`;button.style.top=`${port.y/5.2}%`;
   button.innerHTML=`<span class="harbor-name">${port.name}</span><span class="harbor-goods" aria-hidden="true"><span class="good-made"><small>MAKES</small>${GOOD_INFO[simulation.ports[index].good].icon}</span><span class="good-needed"><small>NEEDS</small>${GOOD_INFO[simulation.ports[index].needs].icon}</span></span><span class="harbor-dot" aria-hidden="true"></span>`;
@@ -72,7 +73,7 @@ function placeRadial(index){
   radialMenu.style.left=`${position[0]}px`;radialMenu.style.top=`${position[1]}px`;radialMenu.dataset.town=String(index);
 }
 function closeLandscapeControls(){if(window.matchMedia('(orientation: landscape) and (max-height: 500px) and (max-width: 1000px)').matches){landscapeMenu.setAttribute('aria-expanded','false');landscapeControls.classList.remove('is-open');}}
-function openTownActions(index){closeLandscapeControls();dismissTownOverlays();activeTown=index;if(simulation.ports[index].town)radialMenu.append(townViewButton);placeRadial(index);portButtons[index].setAttribute('aria-expanded','true');updatePorts();townInfoButton.focus({preventScroll:true});}
+function openTownActions(index){closeLandscapeControls();dismissTownOverlays();activeTown=index;radialTownName.textContent=ports[index].name;if(simulation.ports[index].town)radialMenu.append(townViewButton);placeRadial(index);portButtons[index].setAttribute('aria-expanded','true');updatePorts();townInfoButton.focus({preventScroll:true});}
 function openTownInfo(index){radialMenu.hidden=true;const port=simulation.ports[index],good=GOOD_INFO[port.good],need=GOOD_INFO[port.needs],townGoods=port.town?getTownGoods(port.town):null;townInfo.querySelector('[data-town-name]').textContent=ports[index].name;townInfo.querySelector('[data-produced]').textContent=`${good.icon} ${port.good}`;
   const producers=port.town?.buildings.filter(b=>BUILDING_TYPES[b.type]?.output===port.good)??[];
   const productionRate=townGoods?(townGoods.produced.get(port.good)??0)*60:60/PRODUCTION_SECONDS;
