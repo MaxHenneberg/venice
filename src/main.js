@@ -6,7 +6,7 @@ import { createSimulation, addRoute, removeRoute, advance, quoteRoute, placeProd
 import { seaPath, pointAlong } from './sea-routes.js';
 import { BUILDING_TYPES, getTownGoods, stockForGood } from './town-economy.js';
 import { drawVeniceBoard } from './town-map.js';
-import { POPULATION_TIERS, NEEDS, NEED_POINTS, UNHAPPY_NEED_THRESHOLD, HAPPY_NEED_THRESHOLD, populationTotal, populationProgress, createGoodPriorities } from './population.js';
+import { POPULATION_TIERS, NEEDS, NEED_POINTS, GOODS, UNHAPPY_NEED_THRESHOLD, HAPPY_NEED_THRESHOLD, populationTotal, populationProgress } from './population.js';
 
 const mapViewport = document.querySelector('.map-viewport');
 const mapWorld = document.querySelector('#map-zoom-spacer');
@@ -81,7 +81,6 @@ const simulation=createSimulation(), paths=new Map(), portLayer=document.querySe
 const instruction=document.querySelector('#map-instruction'), announcement=document.querySelector('#map-announcement'), help=document.querySelector('#map-help-text'), popover=document.querySelector('#route-popover'), confirm=document.querySelector('#confirm-route'), treasury=document.querySelector('#treasury');
 const mapShell=document.querySelector('.map-shell'), townInfo=document.querySelector('#town-info-popover'), townView=document.querySelector('#town-view');
 const townBoard=document.querySelector('#town-board'), townViewClose=document.querySelector('#town-view-close'), townViewFeedback=document.querySelector('#town-view-feedback');
-const populationPriority=document.querySelector('#population-priority');
 const labelsToggle=document.querySelector('#harbor-labels-toggle');
 const landscapeMenu=document.querySelector('#landscape-menu-toggle'),landscapeControls=document.querySelector('#landscape-controls');
 landscapeMenu.addEventListener('click',()=>{const expanded=landscapeMenu.getAttribute('aria-expanded')==='true';landscapeMenu.setAttribute('aria-expanded',String(!expanded));landscapeControls.classList.toggle('is-open',!expanded);});
@@ -137,7 +136,6 @@ function placeRadial(index){
 function closeLandscapeControls(){if(window.matchMedia('(orientation: landscape) and (max-height: 500px) and (max-width: 1000px)').matches){landscapeMenu.setAttribute('aria-expanded','false');landscapeControls.classList.remove('is-open');}}
 function openTownActions(index){closeLandscapeControls();dismissTownOverlays();activeTown=index;radialTownName.textContent=ports[index].name;if(simulation.ports[index].town)radialMenu.append(townViewButton);placeRadial(index);portButtons[index].setAttribute('aria-expanded','true');updatePorts();townInfoButton.focus({preventScroll:true});}
 function openTownInfo(index){radialMenu.hidden=true;const port=simulation.ports[index],good=GOOD_INFO[port.good],need=GOOD_INFO[port.needs],townGoods=port.town?getTownGoods(port.town):null;townInfo.querySelector('[data-town-name]').textContent=ports[index].name;townInfo.querySelector('[data-produced]').textContent=`${good.icon} ${port.good}`;
-  populationPriority.value=port.goodPrioritiesOrder??'resources';
   const producers=port.town?.buildings.filter(b=>BUILDING_TYPES[b.type]?.output===port.good)??[];
   const productionRate=townGoods?(townGoods.produced.get(port.good)??0)*60:60/PRODUCTION_SECONDS;
   const productionInterval=producers.length?BUILDING_TYPES[producers[0].type].intervalSeconds:PRODUCTION_SECONDS;
@@ -167,20 +165,21 @@ function positionTownInfo(index){
   }
   townInfo.style.left=`${left}px`;townInfo.style.top=`${top}px`;
 }
-function renderNeedMeters(tier, residents, latest){
-  const colors={unhappy:{empty:'#edc9c2',filled:'#b94d3d'},happy:{empty:'#d4e1ce',filled:'#4f7a4a'},neutral:{empty:'#d8ddd5',filled:'#899287'}};
+function renderNeedMeters(port, tier, latest){
   const needs=document.createElement('div');needs.className='pop-needs';needs.setAttribute('role','group');needs.setAttribute('aria-label',`${tier} need point supply`);
   for(const need of NEEDS){
-    const requested=residents*NEED_POINTS[tier][need],supplied=Math.min(requested,Math.max(0,Math.round(latest.served?.[need]??0)));
+    const residents=port.population.residents[tier],perHousehold=NEED_POINTS[tier][need],requested=residents*perHousehold,supplied=Math.min(requested,Math.max(0,latest.served?.[need]??0)),average=residents?supplied/residents:0,ratio=perHousehold?Math.min(1,average/perHousehold):0,pct=Math.round(ratio*100);
     const row=document.createElement('div');row.className='pop-need';row.dataset.need=need;
-    const name=document.createElement('span');name.className='pop-need-name';name.textContent=need;
-    const meter=document.createElement('span');meter.className='pop-need-meter';meter.setAttribute('role','img');meter.setAttribute('aria-label',`${need}: ${supplied} of ${requested} need points supplied`);
-    for(let point=0;point<requested;point++){
-      const midpoint=(point+0.5)/Math.max(1,requested),band=midpoint<UNHAPPY_NEED_THRESHOLD?'unhappy':midpoint<HAPPY_NEED_THRESHOLD?'happy':'neutral';
-      const filled=point<supplied,segment=document.createElement('span'),color=colors[band][filled?'filled':'empty'];segment.className=`pop-need-segment is-${band}${filled?' is-filled':''}`;segment.dataset.band=band;segment.style.setProperty('background-color',color,'important');segment.dataset.color=color;segment.setAttribute('aria-hidden','true');meter.append(segment);
+    const needIcon={Food:'🍲',Comfort:'🧺',Entertainment:'🎭'}[need],name=document.createElement('span');name.className='pop-need-name';name.textContent=`${needIcon} ${need}`;
+    const meter=document.createElement('span');meter.className='pop-need-meter';meter.setAttribute('role','img');meter.setAttribute('aria-label',`${need}: average ${average.toFixed(1)} of ${perHousehold} points per household supplied (${pct}%)`);meter.dataset.average=average.toFixed(2);meter.dataset.max=String(perHousehold);meter.style.background='linear-gradient(90deg,#edc9c2 0%,#edc9c2 40%,#d4e1ce 40%,#d4e1ce 60%,#d8ddd5 60%,#d8ddd5 100%)';
+    const suppliedBar=document.createElement('span');suppliedBar.className='pop-need-fill';suppliedBar.style.width=`${pct}%`;suppliedBar.dataset.fulfillment=String(ratio);if(ratio>0){const unhappy=Math.min(100,UNHAPPY_NEED_THRESHOLD/ratio*100),happy=Math.min(100,HAPPY_NEED_THRESHOLD/ratio*100);suppliedBar.style.background=`linear-gradient(90deg,#b94d3d 0%,#b94d3d ${unhappy}%,#4f7a4a ${unhappy}%,#4f7a4a ${happy}%,#899287 ${happy}%,#899287 100%)`;}meter.append(suppliedBar);
+    for(let point=0;point<perHousehold;point++){
+      const segment=document.createElement('span');segment.className='pop-need-segment';segment.dataset.point=String(point+1);segment.setAttribute('aria-hidden','true');meter.append(segment);
     }
-    const count=document.createElement('span');count.className='pop-need-count';count.textContent=`${supplied}/${requested} pts`;
-    row.append(name,meter,count);needs.append(row);
+    const count=document.createElement('span');count.className='pop-need-count';count.textContent=`${average.toFixed(1)}/${perHousehold} pts per home`;
+    const allowed=Object.entries(GOODS).filter(([,info])=>info.needs[need]?.includes(tier)).map(([good])=>good),goods=document.createElement('span');goods.className='pop-need-goods';goods.setAttribute('aria-label',`${need} goods for ${tier}`);
+    for(const good of allowed){const amount=port.goodsStock?.[good]??0,option=document.createElement('span');option.className=`pop-good-option${amount>0?' is-stocked':''}`;option.dataset.good=good;option.title=amount>0?`${good}: ${amount} in city stores; worth ${GOODS[good].points} points per unit`:`${good}: none in city stores; worth ${GOODS[good].points} points per unit`;option.textContent=`${GOOD_INFO[good]?.icon??'📦'} ${good} +${GOODS[good].points} pts · ${amount} stored`;goods.append(option);}
+    row.append(name,meter,count,goods);needs.append(row);
   }
   return needs;
 }
@@ -197,19 +196,18 @@ function renderPopulation(port, root, totalLabel, cycleLabel){
     label.append(name,residents);
     const meter=document.createElement('div');meter.className='pop-meter';meter.setAttribute('role','img');meter.setAttribute('aria-label',latest.happiness===null?`${tier}: no households`:`${tier} household happiness ${Math.round(latest.happiness)} percent`);
     const fill=document.createElement('span');fill.style.width=`${Math.max(0,Math.min(100,latest.happiness??0))}%`;meter.append(fill);
-    const detail=document.createElement('div');detail.className='pop-tier-detail';
+    const detail=document.createElement('div');detail.className='pop-tier-detail';detail.dataset.tierDetail=tier;
     if(latest.happiness===null)detail.textContent=population.residents[tier]===0?'No households yet':'Needs update after first 30-second cycle';
     else detail.textContent=`${Math.round(latest.happiness)}% happy`;
-    detail.append(renderNeedMeters(tier,population.residents[tier],latest));
+    detail.append(renderNeedMeters(port,tier,latest));
     if(latest.happiness!==null){
       const goal=progress.filter(item=>item.count>0||item.blocker).map(item=>`${item.action} ${item.count}/${item.target}${item.blocker?` · ${item.blocker}`:''}`).join(' · ');
       if(goal){const status=document.createElement('span');status.className='pop-tier-goal';status.textContent=goal;detail.append(status);}
     }
-    row.append(label,meter,detail);root.append(row);
+    const title=document.createElement('div');title.className='pop-tier-card';title.append(label,meter,detail);row.replaceChildren(title);root.append(row);
   }
-  if(cycleLabel)cycleLabel.textContent=`Needs refresh every 30 seconds · cycle ${population.cycles}`;
+  if(cycleLabel)cycleLabel.textContent=`Bars show average points per household; each stroke is 1 point. Goods show points per unit and current city stock. Needs refresh every 30 seconds · cycle ${population.cycles}`;
 }
-populationPriority.addEventListener('change',()=>{if(activeTown===null)return;const port=simulation.ports[activeTown];port.goodPrioritiesOrder=populationPriority.value;port.goodPriorities=createGoodPriorities(populationPriority.value);announcement.textContent=`${ports[activeTown].name} will use ${populationPriority.options[populationPriority.selectedIndex].text.toLowerCase()} first in its next needs cycle.`;});
 function renderTownChoices(town){const picker=document.querySelector('#production-choice');picker.replaceChildren();for(const type of town.buildableTypes){const def=BUILDING_TYPES[type];if(!def?.placeable||!def.output)continue;const option=document.createElement('option');option.value=type;option.textContent=def.icon+' '+def.output+' · '+def.label;picker.append(option);}picker.value=selectedBuilding;updateProductionChoice();picker.onchange=()=>{selectedBuilding=picker.value;updateProductionChoice();townViewFeedback.textContent=BUILDING_TYPES[selectedBuilding].label+' selected. Choose an empty city plot.';};}
 function updateProductionChoice(){const def=BUILDING_TYPES[selectedBuilding];if(!def)return;const recipe=def.recipe?` Recipe: ${Object.entries(def.recipe).map(([good,amount])=>`${amount} ${good}`).join(' + ')}.`:'';document.querySelector('#production-description').textContent=def.description+recipe+' Goods enter the city stores when ready.';}
 function openTownView(index){const port=simulation.ports[index];if(!port.town)return;dismissTownOverlays();townViewPort=index;selectedBuilding=port.town.buildableTypes.values().next().value??'glassworks';renderTownChoices(port.town);townView.hidden=false;renderTownBoard();updateTownView({renderBuildings:true});townViewClose.focus();announcement.textContent=ports[index].name+' town opened. Choose what to produce, then select an empty city plot.';}
@@ -223,7 +221,7 @@ function updateTownView({renderBuildings=false}={}){if(townViewPort===null)retur
   document.querySelector('#town-view-output').textContent=[...goods.produced].map(([good,rate])=>(GOOD_INFO[good]?.icon??'')+' '+good+' · '+(rate*60).toFixed(0)+'/min').join('  ·  ')||'No production';
   document.querySelector('#town-view-demand').textContent=`${GOOD_INFO[port.needs]?.icon??''} ${port.needs} demand`;
   document.querySelector('#town-view-stock').textContent='City stores '+Object.entries(port.goodsStock).filter(([,amount])=>amount>0).map(([good,amount])=>(GOOD_INFO[good]?.icon??'📦')+amount+' '+good).join(' · ')+' · '+port.consumed+' used';
-  renderPopulation(port, townView.querySelector('[data-town-population]'), null, null);
+    renderPopulation(port, townView.querySelector('[data-town-population]'), null, townView.querySelector('[data-town-population-cycle]'));
   const list=document.querySelector('#town-building-list');
   if(renderBuildings)list.replaceChildren();
   for(const building of town.buildings){const def=BUILDING_TYPES[building.type];let li=list.querySelector(`[data-building-id="${building.id}"]`);
