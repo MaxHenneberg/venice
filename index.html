@@ -14,7 +14,26 @@
     <main>
       <section class="map-shell" aria-label="Interactive map of the Mediterranean">
         <div class="map-viewport" tabindex="0" role="region" aria-label="Trading map; pan and zoom to explore"><div id="map-zoom-spacer"><div id="game"><div id="port-layer" class="labels-hidden" aria-label="Harbors"></div><div id="ship-layer" aria-hidden="true"></div></div></div></div>
-        <div class="map-tools" aria-label="Map controls"><span class="map-brand">✳ TRADE WINDS</span><span id="treasury"></span><div class="map-zoom-controls" role="group" aria-label="Map zoom"><button id="map-zoom-out" type="button" aria-label="Zoom out" title="Zoom out">−</button><output id="map-zoom-value" aria-live="polite">100%</output><button id="map-zoom-in" type="button" aria-label="Zoom in" title="Zoom in">+</button><button id="map-zoom-reset" type="button" aria-label="Reset zoom" title="Reset zoom">↺</button></div><button type="button" id="landscape-menu-toggle" aria-expanded="false" aria-controls="landscape-controls">Map controls</button><div id="landscape-controls"><button type="button" id="harbor-labels-toggle" class="labels-toggle" aria-pressed="false" aria-controls="port-layer">Harbor labels: off</button><div class="goods-control"><button type="button" id="goods-toggle" aria-expanded="false" aria-controls="goods-key">Goods &amp; handling</button><div id="goods-key" class="tool-panel" role="region" aria-label="Goods and handling intervals" hidden></div></div><div class="voyages-control"><button type="button" id="voyages-toggle" aria-expanded="false" aria-controls="routes">Voyages <span id="route-count">0</span></button><div id="routes" class="tool-panel" role="region" aria-label="Active voyages" hidden></div></div></div></div>
+        <aside class="map-tools trade-hud" aria-label="Trade office">
+          <div class="trade-hud-heading">
+            <div class="trade-hud-emblem" aria-hidden="true">⚓</div>
+            <div class="trade-hud-ledger">
+              <span class="trade-hud-kicker">THE DOGE'S LEDGER</span>
+              <span id="treasury"></span>
+            </div>
+            <button type="button" id="landscape-menu-toggle" aria-expanded="false" aria-controls="landscape-controls"><span aria-hidden="true">⚙</span> <span>Map controls</span></button>
+          </div>
+          <div class="trade-hud-fleet">
+            <div class="trade-hud-fleet-heading"><span>YOUR FLEET</span><span id="fleet-count">At anchor</span></div>
+            <div id="fleet-voyages" aria-live="polite"><p class="fleet-idle">All ships are in port</p></div>
+          </div>
+          <div id="landscape-controls" class="trade-hud-controls" aria-label="Trade controls">
+            <button type="button" id="harbor-labels-toggle" class="labels-toggle" aria-label="Harbor labels: off" aria-pressed="false" aria-controls="port-layer"><span class="hud-control-icon" aria-hidden="true">⚓</span><span class="hud-control-label">Harbors</span></button>
+            <div class="goods-control"><button type="button" id="goods-toggle" aria-expanded="false" aria-controls="goods-key"><span class="hud-control-icon" aria-hidden="true">◈</span><span>Goods &amp; handling</span></button><div id="goods-key" class="tool-panel" role="region" aria-label="Goods and handling intervals" hidden></div></div>
+            <div class="voyages-control"><button type="button" id="voyages-toggle" aria-expanded="false" aria-controls="routes"><span class="hud-control-icon" aria-hidden="true">⛵</span><span>Voyages <b id="route-count">0</b></span></button><div id="routes" class="tool-panel" role="region" aria-label="Active voyages" hidden></div></div>
+          </div>
+          <div class="trade-hud-zoom"><span class="trade-hud-kicker">MAP SCALE</span><div class="map-zoom-controls" role="group" aria-label="Map zoom"><button id="map-zoom-out" type="button" aria-label="Zoom out" title="Zoom out">−</button><output id="map-zoom-value" aria-live="polite">100%</output><button id="map-zoom-in" type="button" aria-label="Zoom in" title="Zoom in">+</button><button id="map-zoom-reset" type="button" aria-label="Reset zoom" title="Reset zoom">↺</button></div></div>
+        </aside>
         <div id="map-announcement" class="visually-hidden" role="status" aria-live="polite">Select a starting harbor, then a destination.</div>
         <div id="route-popover" class="route-popover" role="region" aria-label="Route planning" hidden><span id="map-instruction"></span><div class="route-actions"><button id="confirm-route" type="button" hidden>Establish route</button></div></div>
         <section id="town-info-popover" class="town-info-popover" role="dialog" aria-labelledby="town-info-title" hidden>
