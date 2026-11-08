@@ -1,0 +1,9 @@
+.town-board-wrap{background:#89b6ae}
+.venice-historic-map{display:block;pointer-events:none;image-rendering:auto}
+.town-tile-layer{pointer-events:auto}
+.town-hex{fill:#f2e6c46b;stroke:#77694f9c;stroke-width:1.35;vector-effect:non-scaling-stroke}
+.town-tile.is-empty:hover .town-hex,.town-tile.is-empty:focus .town-hex{fill:#fff7dda8;stroke:#8f4e38;stroke-width:2.5}
+.town-tile.is-occupied .town-hex{fill:#a75e485f;stroke:#734b37d9;stroke-width:1.8}
+.building-icon{paint-order:stroke;stroke:#f7edcf;stroke-width:2px;stroke-linejoin:round;filter:drop-shadow(0 1px 1px #4b443766)}
+.building-label{paint-order:stroke;stroke:#f7edcf;stroke-width:1.5px;stroke-linejoin:round;fill:#453a2e;font-weight:700}
+.landmark-label,.landmark-subtitle{paint-order:stroke;stroke:#f1e6c5;stroke-width:3px;stroke-linejoin:round}
