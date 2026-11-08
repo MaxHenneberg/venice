@@ -2,9 +2,9 @@ import Phaser from 'phaser';
 import './style.css';
 import countries from './geography.json' with { type: 'json' };
 import { project, ports } from './geography.js';
-import { createSimulation, addRoute, removeRoute, advance, quoteRoute, placeProductionBuilding, DELIVERY_REWARD, DISTANCE_RATE, CAPACITY, GOOD_INFO, PRODUCTION_SECONDS } from './simulation.js';
+import { createSimulation, addRoute, removeRoute, advance, quoteRoute, placeProductionBuilding, selectTradeGood, DELIVERY_REWARD, DISTANCE_RATE, CAPACITY, GOOD_INFO, PRODUCTION_SECONDS } from './simulation.js';
 import { seaPath, pointAlong } from './sea-routes.js';
-import { BUILDING_TYPES, getTownGoods } from './town-economy.js';
+import { BUILDING_TYPES, getTownGoods, stockForGood } from './town-economy.js';
 import { drawVeniceBoard } from './town-map.js';
 
 const mapViewport = document.querySelector('.map-viewport');
@@ -103,24 +103,25 @@ function positionTownInfo(index){
   }
   townInfo.style.left=`${left}px`;townInfo.style.top=`${top}px`;
 }
-function openTownView(index){const port=simulation.ports[index];if(!port.town)return;dismissTownOverlays();townViewPort=index;selectedBuilding='glassworks';townView.hidden=false;document.querySelector('#select-glassworks').setAttribute('aria-pressed','true');renderTownBoard();updateTownView({renderBuildings:true});townViewClose.focus();announcement.textContent='Venice town view opened. Select an empty hex to place a Glassworks.';}
+function renderTownChoices(town){const picker=document.querySelector('#production-choice');picker.replaceChildren();for(const type of town.buildableTypes){const def=BUILDING_TYPES[type];if(!def?.placeable||!def.output)continue;const option=document.createElement('option');option.value=type;option.textContent=def.icon+' '+def.output+' · '+def.label;picker.append(option);}picker.value=selectedBuilding;updateProductionChoice();picker.onchange=()=>{selectedBuilding=picker.value;updateProductionChoice();townViewFeedback.textContent=BUILDING_TYPES[selectedBuilding].label+' selected. Choose an empty city plot.';};}
+function updateProductionChoice(){const def=BUILDING_TYPES[selectedBuilding];if(!def)return;document.querySelector('#production-description').textContent=def.description+' Goods enter Venice’s trade stores as they are made.';}
+function openTownView(index){const port=simulation.ports[index];if(!port.town)return;dismissTownOverlays();townViewPort=index;selectedBuilding=port.town.buildableTypes.values().next().value??'glassworks';renderTownChoices(port.town);townView.hidden=false;renderTownBoard();updateTownView({renderBuildings:true});townViewClose.focus();announcement.textContent=ports[index].name+' town opened. Choose what to produce, then select an empty city plot.';}
 function closeTownView({restoreFocus=false}={}){const previous=townViewPort;townView.hidden=true;townViewPort=null;if(restoreFocus&&previous!==null)portButtons[previous].focus();announcement.textContent='Returned to the Mediterranean map.';}
 function renderTownBoard(){if(townViewPort===null)return;const town=simulation.ports[townViewPort].town;drawVeniceBoard(townBoard,town,cell=>{
   try{const building=placeProductionBuilding(simulation,townViewPort,selectedBuilding,cell);renderTownBoard();updateTownView({renderBuildings:true});townViewFeedback.textContent=`${BUILDING_TYPES[building.type].label} placed on plot ${cell}.`;
     announcement.textContent=townViewFeedback.textContent;
   }catch(error){townViewFeedback.textContent=error.message;}
 });}
-function updateTownView({renderBuildings=false}={}){if(townViewPort===null)return;const port=simulation.ports[townViewPort],town=port.town,goods=getTownGoods(town),productionRate=(goods.produced.get(port.good)??0)*60,consumer=town.buildings.find(b=>BUILDING_TYPES[b.type]?.input===port.needs),consumeSeconds=consumer?BUILDING_TYPES[consumer.type].consumptionSecondsPerUnit:GOOD_INFO[port.needs]?.seconds;
-  document.querySelector('#town-view-output').textContent=`🏺 ${port.good} · ${productionRate.toFixed(0)}/min`;
+function updateTownView({renderBuildings=false}={}){if(townViewPort===null)return;const port=simulation.ports[townViewPort],town=port.town,goods=getTownGoods(town),consumer=town.buildings.find(b=>BUILDING_TYPES[b.type]?.input===port.needs),consumeSeconds=consumer?BUILDING_TYPES[consumer.type].consumptionSecondsPerUnit:GOOD_INFO[port.needs]?.seconds;
+  document.querySelector('#town-view-output').textContent=[...goods.produced].map(([good,rate])=>(GOOD_INFO[good]?.icon??'')+' '+good+' · '+(rate*60).toFixed(0)+'/min').join('  ·  ')||'No production';
   document.querySelector('#town-view-demand').textContent=`${GOOD_INFO[port.needs]?.icon??''} ${port.needs} demand`;
-  document.querySelector('#town-view-stock').textContent=`Stock ${port.stock} · ${port.consumed} received`;
+  document.querySelector('#town-view-stock').textContent='Stores '+[...goods.produced.keys()].map(good=>(GOOD_INFO[good]?.icon??'')+stockForGood(port,good)).join(' · ')+' · '+port.consumed+' received';
   const list=document.querySelector('#town-building-list');
   if(renderBuildings)list.replaceChildren();
   for(const building of town.buildings){const def=BUILDING_TYPES[building.type];let li=list.querySelector(`[data-building-id="${building.id}"]`);
     if(!li&&renderBuildings){li=document.createElement('li');li.dataset.buildingId=building.id;list.append(li);}
-    if(li)li.textContent=def.kind==='producer'?`${def.icon} ${def.label} · ${building.produced} made · ${(60/def.intervalSeconds).toFixed(0)}/min`:`${def.icon} ${def.label} · ${building.consumed} received · 1/${consumeSeconds.toFixed(1)}s while unloading`;}
+    if(li)li.textContent=def.kind==='producer'?def.icon+' '+def.label+' · '+building.produced+' '+(building.output??def.output)+' · '+(60/def.intervalSeconds).toFixed(0)+'/min':def.icon+' '+def.label+' · '+building.consumed+' received · 1/'+consumeSeconds.toFixed(1)+'s while unloading';}
 }
-document.querySelector('#select-glassworks').addEventListener('click',()=>{selectedBuilding='glassworks';document.querySelector('#select-glassworks').setAttribute('aria-pressed','true');townViewFeedback.textContent='Glassworks selected. Choose an empty hex plot.';});
 function repositionTownOverlays(){if(activeTown===null)return;if(!radialMenu.hidden)placeRadial(activeTown);if(!townInfo.hidden)positionTownInfo(activeTown);}
 window.addEventListener('resize',repositionTownOverlays);mapViewport.addEventListener('scroll',()=>{if(activeTown!==null&&!townInfo.hidden)positionTownInfo(activeTown);},{passive:true});
 function beginRouteSelection(index){closeLandscapeControls();dismissTownOverlays();origin=index;pending=null;popover.hidden=true;confirm.hidden=true;help.textContent=`From ${ports[index].name}: select a destination, or select open water to cancel.`;announcement.textContent=help.textContent;updatePorts();portButtons[index].focus();}
@@ -150,7 +151,7 @@ document.addEventListener('keydown',event=>{
   if(!townView.hidden){
     if(event.key==='Escape'){closeTownView({restoreFocus:true});return;}
     if(event.key==='Tab'){
-      const focusable=[...townView.querySelectorAll('button:not([disabled]), [tabindex="0"]')].filter(el=>!el.closest('[hidden]'));
+      const focusable=[...townView.querySelectorAll('button:not([disabled]), select:not([disabled]), input:not([disabled]), [tabindex="0"]')].filter(el=>!el.closest('[hidden]'));
       const first=focusable[0],last=focusable.at(-1);
       if(event.shiftKey&&(document.activeElement===first||!townView.contains(document.activeElement))){event.preventDefault();last?.focus();}
       else if(!event.shiftKey&&(document.activeElement===last||!townView.contains(document.activeElement))){event.preventDefault();first?.focus();}
@@ -168,7 +169,7 @@ function selectHarbor(index){
   try {
     const path=seaPath(ports[origin],ports[index]);if(!path)throw new Error('No navigable route between those harbors.');
     const quote=quoteRoute(origin,index,path);pending={from:origin,to:index,path,quote};
-    const good=simulation.ports[origin].good,mismatch=simulation.ports[index].needs!==good;
+    const good=selectTradeGood(simulation,origin,index),mismatch=!(simulation.ports[index].needsGoods??[simulation.ports[index].needs]).includes(good);
     pending.message=`${ports[origin].name} to ${ports[index].name}: ${quote.distance} nautical miles × ${DISTANCE_RATE} ducats = ${quote.distanceCost}, plus ship ${quote.shipCost}; total ${quote.total} ducats.${mismatch?` ${ports[index].name} needs ${simulation.ports[index].needs}; ${good} will be held.`:''}`;
     popover.hidden=false;refreshQuote();updatePorts();announcement.textContent=instruction.textContent;
     confirm.hidden=false;confirm.disabled=simulation.balance<quote.total;
@@ -184,7 +185,7 @@ function refreshQuote(){
 confirm.addEventListener('click',()=>{
   if(!pending)return;
   try{const {from,to,path}=pending,route=addRoute(simulation,from,to,path);paths.set(route.id,path);scene?.drawRoutes();renderRoutes();
-    const mismatch=simulation.ports[to].needs!==route.good;
+    const mismatch=!(simulation.ports[to].needsGoods??[simulation.ports[to].needs]).includes(route.good);
     clearOrigin(`Route ${ports[from].name} to ${ports[to].name} created. Loading ${route.good}.${mismatch?` ${ports[to].name} needs ${simulation.ports[to].needs}; cargo will be held on arrival.`:''}`);updateState();
   }catch(error){instruction.textContent=error.message;announcement.textContent=error.message;confirm.disabled=true;}
 });

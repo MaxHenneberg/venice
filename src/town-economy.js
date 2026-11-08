@@ -17,6 +17,30 @@ export const BUILDING_TYPES = {
     placeable: false,
     icon: '🌶️',
     description: 'Receives Spices brought by Venetian traders.'
+  },
+  saltworks: {
+    label: 'Salt Works', kind: 'producer', output: 'Salt', intervalSeconds: 5,
+    placeable: true, icon: '🧂', description: 'Evaporates one unit of Salt every 5 seconds.'
+  },
+  olivePress: {
+    label: 'Oil Press', kind: 'producer', output: 'Olive oil', intervalSeconds: 5,
+    placeable: true, icon: '🫒', description: 'Presses one unit of Olive oil every 5 seconds.'
+  },
+  wineCellar: {
+    label: 'Wine Cellar', kind: 'producer', output: 'Wine', intervalSeconds: 5,
+    placeable: true, icon: '🍷', description: 'Produces one unit of Wine every 5 seconds.'
+  },
+  silkAtelier: {
+    label: 'Silk Atelier', kind: 'producer', output: 'Silk', intervalSeconds: 5,
+    placeable: true, icon: '🧵', description: 'Weaves one unit of Silk every 5 seconds.'
+  },
+  grainMill: {
+    label: 'Grain Mill', kind: 'producer', output: 'Grain', intervalSeconds: 5,
+    placeable: true, icon: '🌾', description: 'Mills one unit of Grain every 5 seconds.'
+  },
+  spiceHouse: {
+    label: 'Spice House', kind: 'producer', output: 'Spices', intervalSeconds: 5,
+    placeable: true, icon: '🌶️', description: 'Prepares one unit of Spices every 5 seconds.'
   }
 };
 
@@ -36,7 +60,7 @@ export const TOWN_BLUEPRINTS = {
   venezia: {
     portIndex: 0,
     name: 'Venezia',
-    buildableTypes: ['glassworks'],
+    buildableTypes: ['glassworks', 'saltworks', 'olivePress', 'wineCellar', 'silkAtelier', 'grainMill', 'spiceHouse'],
     buildableCells: landCells,
     buildings: [
       { id: 'venice-glassworks-1', type: 'glassworks', cell: '3-3' },
@@ -72,7 +96,8 @@ export function getTownGoods(town) {
   for (const building of town.buildings) {
     const definition = BUILDING_TYPES[building.type];
     if (!definition) continue;
-    if (definition.output) produced.set(definition.output, (produced.get(definition.output) ?? 0) + 1 / definition.intervalSeconds);
+    const output = building.output ?? definition.output;
+    if (output) produced.set(output, (produced.get(output) ?? 0) + 1 / definition.intervalSeconds);
     if (definition.input) {
       demanded.add(definition.input);
       consumptionSeconds.set(definition.input, Math.min(consumptionSeconds.get(definition.input) ?? Infinity, definition.consumptionSecondsPerUnit));
@@ -95,12 +120,18 @@ export function addTownBuilding(town, type, cell) {
 export function advanceTownProduction(town, port, seconds, stockLimit = 40) {
   for (const building of town.buildings) {
     const definition = BUILDING_TYPES[building.type];
-    if (!definition?.output) continue;
+    const output = building.output ?? definition?.output;
+    if (!output) continue;
     building.clock += seconds;
     while (building.clock + 1e-9 >= definition.intervalSeconds) {
       building.clock -= definition.intervalSeconds;
-      if (port.stock < stockLimit) {
-        port.stock++;
+      const current = output === port.good ? port.stock : (port.goodsStock?.[output] ?? 0);
+      if (current < stockLimit) {
+        if (output === port.good) {
+          port.stock++;
+          if (port.goodsStock) port.goodsStock[output] = port.stock;
+        }
+        else if (port.goodsStock) port.goodsStock[output] = current + 1;
         building.produced++;
       }
     }
@@ -110,5 +141,17 @@ export function advanceTownProduction(town, port, seconds, stockLimit = 40) {
 export function recordTownConsumption(town, good) {
   const consumer = town.buildings.find(building => BUILDING_TYPES[building.type]?.input === good);
   if (consumer) consumer.consumed++;
+}
+
+export function stockForGood(port, good = port.good) {
+  return good === port.good ? port.stock : (port.goodsStock?.[good] ?? 0);
+}
+
+export function addStockForGood(port, good, amount) {
+  if (good === port.good) {
+    port.stock = Math.min(40, Math.max(0, port.stock + amount));
+    if (port.goodsStock) port.goodsStock[good] = port.stock;
+  }
+  else if (port.goodsStock) port.goodsStock[good] = Math.min(40, Math.max(0, (port.goodsStock[good] ?? 0) + amount));
 }
 

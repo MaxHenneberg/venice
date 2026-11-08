@@ -35,11 +35,12 @@
           <div class="town-view-body">
             <div class="town-board-wrap"><svg id="town-board" class="town-board" aria-label="Venice building plots"></svg></div>
             <aside class="town-build-panel" aria-label="Building and town economy">
-              <p class="town-panel-kicker">BUILD IN THE CITY</p>
-              <button id="select-glassworks" class="building-choice" type="button" aria-pressed="true"><span aria-hidden="true">🏺</span><span><strong>Glassworks</strong><small>Produces Glass · 1 every 5 seconds</small></span><span class="choice-check" aria-hidden="true">✓</span></button>
-              <p id="town-view-feedback" class="town-view-feedback" role="status" aria-live="polite">Select an empty hex to place a Glassworks.</p>
+              <p class="town-panel-kicker">CHOOSE A WORKSHOP</p>
+              <label class="production-label" for="production-choice">Produce</label>
+              <select id="production-choice" class="production-choice" aria-label="Choose what Venice will produce"></select>
+              <p id="production-description" class="production-description"></p>
+              <p id="town-view-feedback" class="town-view-feedback" role="status" aria-live="polite">Choose a good, then select an empty city plot.</p>
               <div class="town-building-list"><p class="town-panel-kicker">DISTRICTS</p><ul id="town-building-list"></ul></div>
-              <p class="town-view-footnote">A schematic lagoon city inspired by a 1500 bird’s-eye plan. The hex plots are a game layer.</p>
             </aside>
           </div>
         </section>
