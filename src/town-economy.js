@@ -44,14 +44,15 @@ export const BUILDING_TYPES = {
   }
 };
 
-// Axial coordinates on land around the central canal. Coordinates are intentionally
-// schematic; the hexes are a game placement layer, not a historical street survey.
-const canalByRow = { 1: [4], 2: [4], 3: [4], 4: [5], 5: [6] };
+// Axial plot rows follow the city islands and Giudecca; omit cells crossed by
+// the Grand Canal and keep the outer cells inset from the shoreline.
+const canalByRow = { 1: [4], 2: [3, 4], 3: [3, 4], 4: [5], 5: [5], 6: [] };
 const landCells = [];
-for (let r = 1; r <= 5; r++) {
+for (let r = 1; r <= 6; r++) {
   for (let q = 0; q <= 8; q++) {
+    if (r === 5 || (r === 6 && q > 6)) continue;
     if (canalByRow[r].includes(q)) continue;
-    if ((r === 1 || r === 5) && (q === 0 || q === 8)) continue;
+    if ((r === 1 || r === 5 || r === 6) && (q === 0 || q === 8)) continue;
     landCells.push(`${q}-${r}`);
   }
 }
@@ -63,7 +64,7 @@ export const TOWN_BLUEPRINTS = {
     buildableTypes: ['glassworks', 'saltworks', 'olivePress', 'wineCellar', 'silkAtelier', 'grainMill', 'spiceHouse'],
     buildableCells: landCells,
     buildings: [
-      { id: 'venice-glassworks-1', type: 'glassworks', cell: '3-3' },
+      { id: 'venice-glassworks-1', type: 'glassworks', cell: '2-3' },
       { id: 'venice-spice-market-1', type: 'spiceMarket', cell: '6-2' }
     ]
   }

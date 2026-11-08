@@ -13,7 +13,7 @@ test('Venice town economy comes from its placed producer and demand buildings', 
   assert.equal(rates.consumptionSeconds.get('Spices'), GOOD_INFO.Spices.seconds);
   assert.equal(town.buildings.find(b => b.type === 'spiceMarket').type, 'spiceMarket');
 
-  placeProductionBuilding(state, 0, 'glassworks', '2-3');
+  placeProductionBuilding(state, 0, 'glassworks', '1-3');
   placeProductionBuilding(state, 0, 'glassworks', '7-4');
   assert.ok(Math.abs(getTownGoods(town).produced.get('Glass') - 3 / BUILDING_TYPES.glassworks.intervalSeconds) < 1e-12);
   advance(state, 5);
@@ -24,8 +24,8 @@ test('Venice town economy comes from its placed producer and demand buildings', 
 test('Venice building placement rejects water, occupied plots, and non-producers', () => {
   const state = createSimulation();
   assert.throws(() => placeProductionBuilding(state, 0, 'glassworks', '4-1'), /water or outside/);
-  assert.throws(() => placeProductionBuilding(state, 0, 'glassworks', '3-3'), /already occupied/);
-  assert.throws(() => placeProductionBuilding(state, 0, 'spiceMarket', '2-3'), /not available for placement/);
+  assert.throws(() => placeProductionBuilding(state, 0, 'glassworks', '2-3'), /already occupied/);
+  assert.throws(() => placeProductionBuilding(state, 0, 'spiceMarket', '1-3'), /not available for placement/);
   assert.throws(() => placeProductionBuilding(state, 1, 'glassworks', '2-3'), /does not have a building view/);
 });
 
