@@ -177,7 +177,7 @@ function renderNeedMeters(tier, residents, latest){
     const meter=document.createElement('span');meter.className='pop-need-meter';meter.setAttribute('role','img');meter.setAttribute('aria-label',`${need}: ${supplied} of ${requested} need points supplied`);
     for(let point=0;point<requested;point++){
       const midpoint=(point+0.5)/Math.max(1,requested),band=midpoint<UNHAPPY_NEED_THRESHOLD?'unhappy':midpoint<HAPPY_NEED_THRESHOLD?'happy':'neutral';
-      const filled=point<supplied,segment=document.createElement('span');segment.className=`pop-need-segment is-${band}${filled?' is-filled':''}`;segment.dataset.band=band;segment.style.backgroundColor=colors[band][filled?'filled':'empty'];segment.setAttribute('aria-hidden','true');meter.append(segment);
+      const filled=point<supplied,segment=document.createElement('span'),color=colors[band][filled?'filled':'empty'];segment.className=`pop-need-segment is-${band}${filled?' is-filled':''}`;segment.dataset.band=band;segment.style.setProperty('background-color',color,'important');segment.dataset.color=color;segment.setAttribute('aria-hidden','true');meter.append(segment);
     }
     const count=document.createElement('span');count.className='pop-need-count';count.textContent=`${supplied}/${requested} pts`;
     row.append(name,meter,count);needs.append(row);
