@@ -23,7 +23,7 @@ const townBoard=document.querySelector('#town-board'), townViewClose=document.qu
 const labelsToggle=document.querySelector('#harbor-labels-toggle');
 const landscapeMenu=document.querySelector('#landscape-menu-toggle'),landscapeControls=document.querySelector('#landscape-controls');
 landscapeMenu.addEventListener('click',()=>{const expanded=landscapeMenu.getAttribute('aria-expanded')==='true';landscapeMenu.setAttribute('aria-expanded',String(!expanded));landscapeControls.classList.toggle('is-open',!expanded);});
-labelsToggle.addEventListener('click',()=>{const visible=labelsToggle.getAttribute('aria-pressed')==='true';labelsToggle.setAttribute('aria-pressed',String(!visible));labelsToggle.textContent=`Harbor labels: ${visible?'off':'on'}`;portLayer.classList.toggle('labels-hidden',visible);});
+labelsToggle.addEventListener('click',()=>{const visible=labelsToggle.getAttribute('aria-pressed')==='true';labelsToggle.setAttribute('aria-pressed',String(!visible));labelsToggle.querySelector('.hud-control-label').textContent=`Harbor labels: ${visible?'off':'on'}`;labelsToggle.setAttribute('aria-label',`Harbor labels: ${visible?'off':'on'}`);portLayer.classList.toggle('labels-hidden',visible);});
 const voyagesToggle=document.querySelector('#voyages-toggle'), voyagesPanel=document.querySelector('#routes');
 voyagesToggle.addEventListener('click',()=>{const expanded=voyagesToggle.getAttribute('aria-expanded')==='true';voyagesToggle.setAttribute('aria-expanded',String(!expanded));voyagesPanel.hidden=expanded;});
 let origin=null,pending=null,scene,activeTown=null,townViewPort=null,selectedBuilding='glassworks';
@@ -199,11 +199,30 @@ function renderRoutes(){
     const button=document.createElement('button');button.type='button';button.textContent='Remove';button.setAttribute('aria-label',`Remove route from ${ports[route.from].name} to ${ports[route.to].name}`);button.addEventListener('click',()=>{removeRoute(simulation,route.id);paths.delete(route.id);shipLayer.querySelector(`[data-id="${route.id}"]`)?.remove();scene?.drawRoutes();renderRoutes();updatePorts();announcement.textContent='Route removed; any cargo was returned to its origin.';voyagesToggle.focus();});row.append(text,button);root.append(row);
     const ship=document.createElement('div');ship.className='ship-label';ship.dataset.id=route.id;shipLayer.append(ship);
   }
+  renderFleetSummary();
+}
+function renderFleetSummary(){
+  const root=document.querySelector('#fleet-voyages'),count=document.querySelector('#fleet-count');
+  const routes=simulation.routes;
+  count.textContent=routes.length?`${routes.length} at sea`:'At anchor';
+  count.setAttribute('aria-label',routes.length?`${routes.length} active voyage${routes.length===1?'':'s'}`:'Fleet at anchor');
+  const state=routes.map(route=>`${route.id}:${routeText(route)}`).join('|');
+  if(root.dataset.state===state)return;
+  root.dataset.state=state;root.replaceChildren();
+  if(!routes.length){const idle=document.createElement('p');idle.className='fleet-idle';idle.textContent='All ships are in port';root.append(idle);return;}
+  for(const route of routes){
+    const row=document.createElement('div');row.className='fleet-voyage';row.setAttribute('role','listitem');
+    const heading=document.createElement('strong');heading.className='fleet-voyage-route';heading.textContent=`${ports[route.from].name} → ${ports[route.to].name}`;
+    const status=document.createElement('span');status.className='fleet-voyage-status';status.textContent=`${GOOD_INFO[route.good].icon} ${route.cargo}/${CAPACITY} · ${route.status}`;status.setAttribute('aria-label',`${route.good} cargo: ${route.cargo} of ${CAPACITY} units, ${route.status}`);
+    row.append(heading,status);root.append(row);
+  }
+  root.setAttribute('role','list');root.setAttribute('aria-label','Current ship movements');
 }
 function updateState(){
   treasury.textContent=`Treasury · ${simulation.balance} ducats`;
   refreshQuote();
   updatePorts();
+  renderFleetSummary();
   updateTownView();
   const placed=[];
   if(activeTown!==null&&!townInfo.hidden){const town=simulation.ports[activeTown];townInfo.querySelector('[data-stock]').textContent=`${town.stock} units available`;townInfo.querySelector('[data-consumed-count]').textContent=`${town.consumed} units consumed from deliveries`;}
