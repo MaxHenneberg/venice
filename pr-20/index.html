@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ede7d8" />
+  <title>Trade Winds · The Venetian Sea</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-BlOfMOTr.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DWVw5x92.css">
+</head>
+<body>
+  <div class="app">
+    <main>
+      <section class="map-shell" aria-label="Interactive map of the Mediterranean">
+        <div class="map-viewport" tabindex="0" role="region" aria-label="Trading map; scroll horizontally to explore"><div id="game"><div id="port-layer" class="labels-hidden" aria-label="Harbors"></div><div id="ship-layer" aria-hidden="true"></div></div></div>
+        <aside class="map-tools trade-hud" aria-label="Trade office">
+          <div class="trade-hud-heading">
+            <div class="trade-hud-emblem" aria-hidden="true">⚓</div>
+            <div class="trade-hud-ledger">
+              <span class="trade-hud-kicker">THE DOGE'S LEDGER</span>
+              <span id="treasury"></span>
+            </div>
+            <button type="button" id="landscape-menu-toggle" aria-expanded="false" aria-controls="landscape-controls"><span aria-hidden="true">⚙</span> <span>Map controls</span></button>
+          </div>
+          <div class="trade-hud-fleet">
+            <div class="trade-hud-fleet-heading"><span>YOUR FLEET</span><span id="fleet-count">At anchor</span></div>
+            <div id="fleet-voyages" aria-live="polite"><p class="fleet-idle">All ships are in port</p></div>
+          </div>
+          <div id="landscape-controls" class="trade-hud-controls" aria-label="Trade controls">
+            <button type="button" id="harbor-labels-toggle" class="labels-toggle" aria-label="Harbor labels: off" aria-pressed="false" aria-controls="port-layer"><span class="hud-control-icon" aria-hidden="true">⚓</span><span class="hud-control-label">Harbors</span></button>
+            <div class="goods-control"><button type="button" id="goods-toggle" aria-expanded="false" aria-controls="goods-key"><span class="hud-control-icon" aria-hidden="true">◈</span><span>Goods &amp; handling</span></button><div id="goods-key" class="tool-panel" role="region" aria-label="Goods and handling intervals" hidden></div></div>
+            <div class="voyages-control"><button type="button" id="voyages-toggle" aria-expanded="false" aria-controls="routes"><span class="hud-control-icon" aria-hidden="true">⛵</span><span>Voyages <b id="route-count">0</b></span></button><div id="routes" class="tool-panel" role="region" aria-label="Active voyages" hidden></div></div>
+          </div>
+        </aside>
+        <div id="map-announcement" class="visually-hidden" role="status" aria-live="polite">Select a starting harbor, then a destination.</div>
+        <div id="route-popover" class="route-popover" role="region" aria-label="Route planning" hidden><span id="map-instruction"></span><div class="route-actions"><button id="confirm-route" type="button" hidden>Establish route</button></div></div>
+        <section id="town-info-popover" class="town-info-popover" role="dialog" aria-labelledby="town-info-title" hidden>
+          <button class="town-info-close" type="button" aria-label="Close town information">×</button>
+          <p class="town-info-kicker">HARBOR LEDGER</p><h2 id="town-info-title" data-town-name></h2>
+          <div class="town-stat"><span class="town-stat-icon" aria-hidden="true">OUT</span><div><strong>Produces <span data-produced></span></strong><span class="town-stat-detail" data-production-rate></span><span class="town-stat-detail" data-stock></span></div></div>
+          <div class="town-stat"><span class="town-stat-icon" aria-hidden="true">IN</span><div><strong>Consumes <span data-consumed></span></strong><span class="town-stat-detail" data-consumption-rate></span><span class="town-stat-detail" data-consumed-count></span></div></div>
+          <p class="town-stat-note">Consumption occurs only when a compatible cargo unloads here.</p>
+        </section>
+        <section id="town-view" class="town-view" role="dialog" aria-modal="true" aria-labelledby="town-view-title" hidden>
+          <header class="town-view-header">
+            <div><p class="town-view-kicker">THE LAGOON · CIRCA 1500</p><h2 id="town-view-title">Venice</h2></div>
+            <div class="town-view-ledger" aria-label="Town production and inventory">
+              <span id="town-view-output"></span><span id="town-view-demand"></span><span id="town-view-stock"></span>
+            </div>
+            <button id="town-view-close" class="town-view-close" type="button" aria-label="Return to the Mediterranean map">×</button>
+          </header>
+          <div class="town-view-body">
+            <div class="town-board-wrap"><svg id="town-board" class="town-board" aria-label="Venice building plots"></svg></div>
+            <aside class="town-build-panel" aria-label="Building and town economy">
+              <p class="town-panel-kicker">CHOOSE A WORKSHOP</p>
+              <label class="production-label" for="production-choice">Produce</label>
+              <select id="production-choice" class="production-choice" aria-label="Choose what Venice will produce"></select>
+              <p id="production-description" class="production-description"></p>
+              <p id="town-view-feedback" class="town-view-feedback" role="status" aria-live="polite">Choose a good, then select an empty city plot.</p>
+              <div class="town-building-list"><p class="town-panel-kicker">DISTRICTS</p><ul id="town-building-list"></ul></div>
+            </aside>
+          </div>
+        </section>
+        <div class="map-help"><span id="map-help-text">Select two harbors to trade</span> <span>· Scroll map to explore</span></div>
+      </section>
+    </main>
+  </div>
+</body></html>
+
+
