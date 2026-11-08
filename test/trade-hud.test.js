@@ -39,11 +39,16 @@ test('trade HUD controls remain inside the map and usable on mobile',async()=>{
     assert.equal(await page.locator('#landscape-controls').isVisible(),true);const menu=page.getByRole('button',{name:'Map controls'});assert.equal(await menu.isHidden(),true);
     for(const selector of ['#harbor-labels-toggle','#goods-toggle','#voyages-toggle'])assert.ok((await page.locator(selector).boundingBox()).height>=44,`${selector} should be touch-sized`);
     await page.getByRole('button',{name:'Harbor labels: off'}).tap();assert.equal(await page.getByRole('button',{name:'Harbor labels: on'}).getAttribute('aria-pressed'),'true');
-    await page.setViewportSize({width:844,height:390});assert.ok(await menu.isVisible());await menu.tap();assert.equal(await page.locator('#landscape-controls').isVisible(),true);
     const assertHudFits=async()=>{
-      const bounds=await page.evaluate(()=>{const shell=document.querySelector('.map-shell').getBoundingClientRect();const hud=document.querySelector('.trade-hud');const elements=[hud,...hud.querySelectorAll('*')];return elements.map(el=>{const r=el.getBoundingClientRect();return {name:el.id||el.className||el.tagName,left:r.left,right:r.right,width:r.width,visible:r.width>0&&r.height>0,shellLeft:shell.left,shellRight:shell.right}}).filter(item=>item.visible)});
-      for(const item of bounds)assert.ok(item.left>=item.shellLeft-1&&item.right<=item.shellRight+1,`${item.name} escapes map at 844x390: ${JSON.stringify(item)}`);
+      const result=await page.evaluate(()=>{const shell=document.querySelector('.map-shell').getBoundingClientRect(),hud=document.querySelector('.trade-hud').getBoundingClientRect();const elements=[document.querySelector('.trade-hud'),...document.querySelector('.trade-hud').querySelectorAll('*')];const escaped=elements.map(el=>{const r=el.getBoundingClientRect();return {name:el.id||el.className||el.tagName,left:r.left,right:r.right,width:r.width,visible:r.width>0&&r.height>0,hudLeft:hud.left,hudRight:hud.right,shellLeft:shell.left,shellRight:shell.right}}).filter(item=>item.visible&&(item.left<item.hudLeft-1||item.right>item.hudRight+1||item.left<item.shellLeft-1||item.right>item.shellRight+1));return {escaped,scrollWidth:document.documentElement.scrollWidth,viewportWidth:window.innerWidth}});
+      assert.ok(result.scrollWidth<=result.viewportWidth,`document overflows at 844x390: ${JSON.stringify(result)}`);
+      assert.deepEqual(result.escaped,[],`HUD content escapes its panel/map at 844x390: ${JSON.stringify(result.escaped)}`);
     };
+    await page.setViewportSize({width:844,height:390});assert.ok(await menu.isVisible());
+    await assertHudFits();
+    assert.equal(await page.locator('#landscape-menu-toggle').evaluate(el=>getComputedStyle(el).fontSize),'0px');
+    assert.ok((await page.locator('#landscape-menu-toggle').boundingBox()).width<=44);
+    await menu.tap();assert.equal(await page.locator('#landscape-controls').isVisible(),true);
     await assertHudFits();
     if(await page.locator('.trade-hud-zoom').count())await page.getByRole('button',{name:'Zoom in'}).tap();
     await assertHudFits();
