@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import './style.css';
 import countries from './geography.json' with { type: 'json' };
 import { project, ports } from './geography.js';
-import { createSimulation, addRoute, removeRoute, advance, quoteRoute, DELIVERY_REWARD, DISTANCE_RATE, CAPACITY, GOOD_INFO } from './simulation.js';
+import { createSimulation, addRoute, removeRoute, advance, quoteRoute, DELIVERY_REWARD, DISTANCE_RATE, CAPACITY, GOOD_INFO, PRODUCTION_SECONDS } from './simulation.js';
 import { seaPath, pointAlong } from './sea-routes.js';
 
 const mapViewport = document.querySelector('.map-viewport');
@@ -16,30 +16,59 @@ mapViewport.addEventListener('keydown', event => {
 if (window.matchMedia('(max-width: 700px)').matches) requestAnimationFrame(() => { mapViewport.scrollLeft = Math.max(0, project(12.3388,45.4408).x / 1200 * mapViewport.scrollWidth - mapViewport.clientWidth / 2); });
 const simulation=createSimulation(), paths=new Map(), portLayer=document.querySelector('#port-layer'), shipLayer=document.querySelector('#ship-layer');
 const instruction=document.querySelector('#map-instruction'), announcement=document.querySelector('#map-announcement'), help=document.querySelector('#map-help-text'), popover=document.querySelector('#route-popover'), confirm=document.querySelector('#confirm-route'), treasury=document.querySelector('#treasury');
+const mapShell=document.querySelector('.map-shell'), townInfo=document.querySelector('#town-info-popover');
 const labelsToggle=document.querySelector('#harbor-labels-toggle');
 const landscapeMenu=document.querySelector('#landscape-menu-toggle'),landscapeControls=document.querySelector('#landscape-controls');
 landscapeMenu.addEventListener('click',()=>{const expanded=landscapeMenu.getAttribute('aria-expanded')==='true';landscapeMenu.setAttribute('aria-expanded',String(!expanded));landscapeControls.classList.toggle('is-open',!expanded);});
 labelsToggle.addEventListener('click',()=>{const visible=labelsToggle.getAttribute('aria-pressed')==='true';labelsToggle.setAttribute('aria-pressed',String(!visible));labelsToggle.textContent=`Harbor labels: ${visible?'off':'on'}`;portLayer.classList.toggle('labels-hidden',visible);});
 const voyagesToggle=document.querySelector('#voyages-toggle'), voyagesPanel=document.querySelector('#routes');
 voyagesToggle.addEventListener('click',()=>{const expanded=voyagesToggle.getAttribute('aria-expanded')==='true';voyagesToggle.setAttribute('aria-expanded',String(!expanded));voyagesPanel.hidden=expanded;});
-let origin=null,pending=null,scene;
+let origin=null,pending=null,scene,activeTown=null;
+const radialMenu=document.createElement('div');radialMenu.className='harbor-radial';radialMenu.hidden=true;radialMenu.setAttribute('role','group');radialMenu.setAttribute('aria-label','Town actions');
+const townInfoButton=document.createElement('button');townInfoButton.type='button';townInfoButton.className='radial-action';townInfoButton.innerHTML='<span class="radial-glyph" aria-hidden="true">◉</span><span>Town Info</span>';
+const tradeButton=document.createElement('button');tradeButton.type='button';tradeButton.className='radial-action';tradeButton.innerHTML='<span class="radial-glyph" aria-hidden="true">↗</span><span>Create Trade Route</span>';
+radialMenu.append(townInfoButton,tradeButton);portLayer.append(radialMenu);
 const portButtons=ports.map((port,index)=>{
   const button=document.createElement('button');button.type='button';button.className='harbor';button.style.left=`${port.x/12}%`;button.style.top=`${port.y/5.2}%`;
   button.innerHTML=`<span class="harbor-name">${port.name}</span><span class="harbor-goods" aria-hidden="true"><span class="good-made"><small>MAKES</small>${GOOD_INFO[simulation.ports[index].good].icon}</span><span class="good-needed"><small>NEEDS</small>${GOOD_INFO[simulation.ports[index].needs].icon}</span></span><span class="harbor-dot" aria-hidden="true"></span>`;
-  button.addEventListener('click',()=>selectHarbor(index));portLayer.append(button);return button;
+  button.setAttribute('aria-controls','harbor-radial');button.setAttribute('aria-expanded','false');
+  button.addEventListener('click',()=>{if(origin!==null){selectHarbor(index);return;}openTownActions(index);});portLayer.append(button);return button;
 });
+radialMenu.id='harbor-radial';
+townInfoButton.addEventListener('click',()=>{if(activeTown!==null)openTownInfo(activeTown);});
+tradeButton.addEventListener('click',()=>{if(activeTown!==null)beginRouteSelection(activeTown);});
+townInfo.querySelector('.town-info-close').addEventListener('click',()=>dismissTownOverlays({restoreFocus:true}));
 const key=document.querySelector('#goods-key'), goodsToggle=document.querySelector('#goods-toggle');
 goodsToggle.addEventListener('click',()=>{const expanded=goodsToggle.getAttribute('aria-expanded')==='true';goodsToggle.setAttribute('aria-expanded',String(!expanded));key.hidden=expanded;});
 for(const [name,info] of Object.entries(GOOD_INFO)){const row=document.createElement('div');row.className='key-row';row.textContent=`${info.icon} ${name} · ${info.seconds.toFixed(1)}s per unit`;key.append(row);}
 const keyNote=document.createElement('p');keyNote.textContent=`The same interval applies to loading and unloading each unit. Ports produce one unit every 5 seconds; ships carry up to 8. Each unit delivered earns ${DELIVERY_REWARD} ducats.`;key.append(keyNote);
-function updatePorts(){portLayer.classList.toggle('route-selecting',origin!==null);portButtons.forEach((button,i)=>{const p=simulation.ports[i],selected=origin===i||pending?.to===i;button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received. ${origin===i?'Starting harbor selected.':pending?.to===i?'Destination harbor selected.':'Select harbor.'}`);button.setAttribute('aria-pressed',String(selected));});}
-function clearOrigin(message='Select a starting harbor, then a destination.'){origin=null;pending=null;popover.hidden=true;confirm.hidden=true;confirm.disabled=false;instruction.textContent='';help.textContent='Select two harbors to trade';announcement.textContent=message;updatePorts();}
+function updatePorts(){portLayer.classList.toggle('route-selecting',origin!==null);portButtons.forEach((button,i)=>{const p=simulation.ports[i],selected=origin===i||pending?.to===i||activeTown===i;button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received and ${p.consumed} consumed. ${origin===i?'Starting harbor selected.':pending?.to===i?'Destination harbor selected.':activeTown===i?'Town actions open.':'Open town actions.'}`);button.setAttribute('aria-pressed',String(selected));});}
+function dismissTownOverlays({restoreFocus=false}={}){const previous=activeTown;activeTown=null;radialMenu.hidden=true;townInfo.hidden=true;townInfo.removeAttribute('style');if(previous!==null)portButtons[previous].setAttribute('aria-expanded','false');if(restoreFocus&&previous!==null)portButtons[previous].focus();updatePorts();}
+function placeRadial(index){const button=portButtons[index],layer=portLayer.getBoundingClientRect(),anchor=button.getBoundingClientRect();radialMenu.hidden=false;radialMenu.style.left='0px';radialMenu.style.top='0px';const menu=radialMenu.getBoundingClientRect(),centerX=anchor.left-layer.left+anchor.width/2,centerY=anchor.top-layer.top+anchor.height/2;radialMenu.style.left=`${Math.max(menu.width/2+4,Math.min(centerX,layer.width-menu.width/2-4))}px`;radialMenu.style.top=`${Math.max(menu.height/2+4,Math.min(centerY,layer.height-menu.height/2-4))}px`;radialMenu.dataset.town=String(index);}
+function closeLandscapeControls(){if(window.matchMedia('(orientation: landscape) and (max-height: 500px) and (max-width: 1000px)').matches){landscapeMenu.setAttribute('aria-expanded','false');landscapeControls.classList.remove('is-open');}}
+function openTownActions(index){closeLandscapeControls();dismissTownOverlays();activeTown=index;placeRadial(index);portButtons[index].setAttribute('aria-expanded','true');updatePorts();townInfoButton.focus({preventScroll:true});}
+function openTownInfo(index){radialMenu.hidden=true;const port=simulation.ports[index],good=GOOD_INFO[port.good],need=GOOD_INFO[port.needs];townInfo.querySelector('[data-town-name]').textContent=ports[index].name;townInfo.querySelector('[data-produced]').textContent=`${good.icon} ${port.good}`;townInfo.querySelector('[data-production-rate]').textContent=`1 unit / ${PRODUCTION_SECONDS}s · up to ${formatRate(PRODUCTION_SECONDS)} per minute`;
+  townInfo.querySelector('[data-stock]').textContent=`${port.stock} units available`;
+  townInfo.querySelector('[data-consumed]').textContent=`${need.icon} ${port.needs}`;townInfo.querySelector('[data-consumption-rate]').textContent=`1 unit / ${need.seconds.toFixed(1)}s while a compatible ship unloads · ${formatRate(need.seconds)} per ship per minute`;
+  townInfo.querySelector('[data-consumed-count]').textContent=`${port.consumed} units consumed from deliveries`;
+  townInfo.hidden=false;positionTownInfo(index);townInfo.querySelector('.town-info-close').focus();announcement.textContent=`${ports[index].name} town information opened.`;}
+function formatRate(seconds){return `${(60/seconds).toFixed(1)} units`;}
+function positionTownInfo(index){const shell=mapShell.getBoundingClientRect(),button=portButtons[index].getBoundingClientRect();townInfo.style.left='0px';townInfo.style.top='0px';const box=townInfo.getBoundingClientRect(),margin=10;let left=button.left-shell.left+button.width/2-box.width/2,top=button.top-shell.top+button.height+12;
+  if(top+box.height>shell.height-margin)top=button.top-shell.top-box.height-12;
+  townInfo.style.left=`${Math.max(margin,Math.min(left,shell.width-box.width-margin))}px`;townInfo.style.top=`${Math.max(margin,Math.min(top,shell.height-box.height-margin))}px`;}
+function repositionTownOverlays(){if(activeTown===null)return;if(!radialMenu.hidden)placeRadial(activeTown);if(!townInfo.hidden)positionTownInfo(activeTown);}
+window.addEventListener('resize',repositionTownOverlays);mapViewport.addEventListener('scroll',()=>{if(activeTown!==null&&!townInfo.hidden)positionTownInfo(activeTown);},{passive:true});
+function beginRouteSelection(index){closeLandscapeControls();dismissTownOverlays();origin=index;pending=null;popover.hidden=true;confirm.hidden=true;help.textContent=`From ${ports[index].name}: select a destination, or select open water to cancel.`;announcement.textContent=help.textContent;updatePorts();portButtons[index].focus();}
+function clearOrigin(message='Select a starting harbor, then a destination.'){origin=null;pending=null;popover.hidden=true;confirm.hidden=true;confirm.disabled=false;instruction.textContent='';help.textContent='Select two harbors to trade';announcement.textContent=message;dismissTownOverlays();updatePorts();}
 // Phaser may suppress the synthetic click after a touch on its canvas. Track
 // taps before Phaser handles them; panning or touching a control is not cancel.
-const mapShell=document.querySelector('.map-shell');let mapTouch=null;
+let mapTouch=null;
 const isMapBackground=target=>target instanceof Element&&!target.closest('button, .map-tools');
 const cancelMapSelection=()=>clearOrigin('Route selection cancelled. Select a starting harbor.');
-mapShell.addEventListener('click',event=>{if(origin!==null&&isMapBackground(event.target))cancelMapSelection();},true);
+mapShell.addEventListener('click',event=>{
+  if(activeTown!==null&&!event.target.closest('.harbor-radial, .town-info-popover, .harbor'))dismissTownOverlays();
+  if(origin!==null&&isMapBackground(event.target))cancelMapSelection();
+},true);
 mapShell.addEventListener('pointerdown',event=>{
   if(event.pointerType==='touch'&&origin!==null&&isMapBackground(event.target))mapTouch={id:event.pointerId,x:event.clientX,y:event.clientY,moved:false};
 },true);
@@ -52,9 +81,9 @@ mapShell.addEventListener('pointerup',event=>{
   if(tap&&origin!==null&&isMapBackground(event.target))cancelMapSelection();
 },true);
 mapShell.addEventListener('pointercancel',event=>{if(mapTouch?.id===event.pointerId)mapTouch=null;},true);
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&origin!==null){clearOrigin('Route selection cancelled. Select a starting harbor.');}});
+document.addEventListener('keydown',event=>{if(event.key!=='Escape')return;if(origin!==null){clearOrigin('Route selection cancelled. Select a starting harbor.');return;}if(activeTown!==null)dismissTownOverlays({restoreFocus:true});});
 function selectHarbor(index){
-  if(window.matchMedia('(orientation: landscape) and (max-height: 500px) and (max-width: 1000px)').matches){landscapeMenu.setAttribute('aria-expanded','false');landscapeControls.classList.remove('is-open');}
+  closeLandscapeControls();
   if(origin===null){origin=index;popover.hidden=true;help.textContent=`From ${ports[index].name}: select a destination, or select open water to cancel.`;announcement.textContent=help.textContent;updatePorts();return;}
   if(index===origin){clearOrigin('Route selection cancelled. Select a starting harbor.');return;}
   try {
@@ -95,6 +124,7 @@ function updateState(){
   refreshQuote();
   updatePorts();
   const placed=[];
+  if(activeTown!==null&&!townInfo.hidden){const town=simulation.ports[activeTown];townInfo.querySelector('[data-stock]').textContent=`${town.stock} units available`;townInfo.querySelector('[data-consumed-count]').textContent=`${town.consumed} units consumed from deliveries`;}
   for(const route of simulation.routes){const status=document.querySelector(`.route-row[data-id="${route.id}"] .route-state`);if(status && status.textContent!==routeText(route))status.textContent=routeText(route);const ship=shipLayer.querySelector(`[data-id="${route.id}"]`);if(ship){const p=pointAlong(paths.get(route.id),route.progress);ship.style.left=`${p.x/12}%`;ship.style.top=`${p.y/5.2}%`;const offset=placed.filter(other=>Math.hypot(other.x-p.x,other.y-p.y)<25).length;placed.push(p);ship.style.transform=`translate(-50%, ${10+offset*22}px)`;ship.textContent=`⛵ ${GOOD_INFO[route.good].icon} ${route.cargo}/${CAPACITY} · ${route.status}`;}}
 }
 updatePorts();renderRoutes();
