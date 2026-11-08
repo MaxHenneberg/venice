@@ -6,6 +6,7 @@ import { createSimulation, addRoute, removeRoute, advance, quoteRoute, placeProd
 import { seaPath, pointAlong } from './sea-routes.js';
 import { BUILDING_TYPES, getTownGoods, stockForGood } from './town-economy.js';
 import { drawVeniceBoard } from './town-map.js';
+import { POPULATION_TIERS, NEEDS, populationTotal, populationProgress, createGoodPriorities } from './population.js';
 
 const mapViewport = document.querySelector('.map-viewport');
 const mapWorld = document.querySelector('#map-zoom-spacer');
@@ -80,6 +81,7 @@ const simulation=createSimulation(), paths=new Map(), portLayer=document.querySe
 const instruction=document.querySelector('#map-instruction'), announcement=document.querySelector('#map-announcement'), help=document.querySelector('#map-help-text'), popover=document.querySelector('#route-popover'), confirm=document.querySelector('#confirm-route'), treasury=document.querySelector('#treasury');
 const mapShell=document.querySelector('.map-shell'), townInfo=document.querySelector('#town-info-popover'), townView=document.querySelector('#town-view');
 const townBoard=document.querySelector('#town-board'), townViewClose=document.querySelector('#town-view-close'), townViewFeedback=document.querySelector('#town-view-feedback');
+const populationPriority=document.querySelector('#population-priority');
 const labelsToggle=document.querySelector('#harbor-labels-toggle');
 const landscapeMenu=document.querySelector('#landscape-menu-toggle'),landscapeControls=document.querySelector('#landscape-controls');
 landscapeMenu.addEventListener('click',()=>{const expanded=landscapeMenu.getAttribute('aria-expanded')==='true';landscapeMenu.setAttribute('aria-expanded',String(!expanded));landscapeControls.classList.toggle('is-open',!expanded);});
@@ -135,15 +137,16 @@ function placeRadial(index){
 function closeLandscapeControls(){if(window.matchMedia('(orientation: landscape) and (max-height: 500px) and (max-width: 1000px)').matches){landscapeMenu.setAttribute('aria-expanded','false');landscapeControls.classList.remove('is-open');}}
 function openTownActions(index){closeLandscapeControls();dismissTownOverlays();activeTown=index;radialTownName.textContent=ports[index].name;if(simulation.ports[index].town)radialMenu.append(townViewButton);placeRadial(index);portButtons[index].setAttribute('aria-expanded','true');updatePorts();townInfoButton.focus({preventScroll:true});}
 function openTownInfo(index){radialMenu.hidden=true;const port=simulation.ports[index],good=GOOD_INFO[port.good],need=GOOD_INFO[port.needs],townGoods=port.town?getTownGoods(port.town):null;townInfo.querySelector('[data-town-name]').textContent=ports[index].name;townInfo.querySelector('[data-produced]').textContent=`${good.icon} ${port.good}`;
+  populationPriority.value=port.goodPrioritiesOrder??'resources';
   const producers=port.town?.buildings.filter(b=>BUILDING_TYPES[b.type]?.output===port.good)??[];
   const productionRate=townGoods?(townGoods.produced.get(port.good)??0)*60:60/PRODUCTION_SECONDS;
   const productionInterval=producers.length?BUILDING_TYPES[producers[0].type].intervalSeconds:PRODUCTION_SECONDS;
   townInfo.querySelector('[data-production-rate]').textContent=`1 unit / ${productionInterval}s · ${productionRate.toFixed(1)} units per minute${port.town?` from ${producers.length} producer${producers.length===1?'':'s'}`:` (current cadence)`}`;
   townInfo.querySelector('[data-stock]').textContent=`${port.stock} units available`;
-  townInfo.querySelector('[data-consumed]').textContent=`${need.icon} ${port.needs}`;const consumeSeconds=port.consumptionSeconds?.get(port.needs)??need.seconds;townInfo.querySelector('[data-consumption-rate]').textContent=`1 unit / ${consumeSeconds.toFixed(1)}s while compatible cargo unloads · ${formatRate(consumeSeconds)} per ship per minute`;
-  townInfo.querySelector('[data-consumed-count]').textContent=`${port.consumed} units consumed from deliveries`;
+  townInfo.querySelector('[data-consumed]').textContent=`${need.icon} ${port.needs}`;townInfo.querySelector('[data-consumption-rate]').textContent='Goods stay in city stores until the next 30-second needs cycle.';
+  townInfo.querySelector('[data-consumed-count]').textContent=`${port.consumed} goods used by citizens`;
+  renderPopulation(port, townInfo.querySelector('[data-population-tiers]'), townInfo.querySelector('[data-population-total]'), townInfo.querySelector('[data-population-cycle]'));
   townInfo.hidden=false;positionTownInfo(index);townInfo.querySelector('.town-info-close').focus();announcement.textContent=`${ports[index].name} town information opened.`;}
-function formatRate(seconds){return `${(60/seconds).toFixed(1)} units`;}
 function positionTownInfo(index){
   const shell=mapShell.getBoundingClientRect(),button=portButtons[index].getBoundingClientRect(),toolbar=document.querySelector('.map-tools').getBoundingClientRect();
   townInfo.style.left='0px';townInfo.style.top='0px';const box=townInfo.getBoundingClientRect(),margin=10;
@@ -164,8 +167,33 @@ function positionTownInfo(index){
   }
   townInfo.style.left=`${left}px`;townInfo.style.top=`${top}px`;
 }
+function renderPopulation(port, root, totalLabel, cycleLabel){
+  if(!port?.population||!root)return;
+  const population=port.population; if(totalLabel)totalLabel.textContent=`${populationTotal(population)} residents · ${POPULATION_TIERS.reduce((sum,tier)=>sum+population.housing[tier],0)} homes`;
+  root.replaceChildren();
+  for(const tier of POPULATION_TIERS){
+    const latest=population.lastCycle[tier],progress=populationProgress(population,tier);
+    const row=document.createElement('div');row.className='pop-tier';
+    const label=document.createElement('div');label.className='pop-tier-label';
+    const name=document.createElement('strong');name.textContent=tier;
+    const residents=document.createElement('span');residents.textContent=`${population.residents[tier]} / ${population.housing[tier]} homes`;
+    label.append(name,residents);
+    const meter=document.createElement('div');meter.className='pop-meter';meter.setAttribute('role','img');meter.setAttribute('aria-label',latest.happiness===null?`${tier}: no households`:`${tier} household happiness ${Math.round(latest.happiness)} percent`);
+    const fill=document.createElement('span');fill.style.width=`${Math.max(0,Math.min(100,latest.happiness??0))}%`;meter.append(fill);
+    const detail=document.createElement('small');detail.className='pop-tier-detail';
+    if(latest.happiness===null)detail.textContent='No households yet';
+    else {
+      const needs=NEEDS.map(need=>`${need.slice(0,1)} ${Math.round(latest.served[need])}/${latest.demand[need]}`).join(' · ');
+      const goal=progress.filter(item=>item.count>0||item.blocker).map(item=>`${item.action} ${item.count}/${item.target}${item.blocker?` · ${item.blocker}`:''}`).join(' · ');
+      detail.textContent=`${Math.round(latest.happiness)}% happy · ${needs}${goal?` · ${goal}`:''}`;
+    }
+    row.append(label,meter,detail);root.append(row);
+  }
+  if(cycleLabel)cycleLabel.textContent=`Needs refresh every 30 seconds · cycle ${population.cycles}`;
+}
+populationPriority.addEventListener('change',()=>{if(activeTown===null)return;const port=simulation.ports[activeTown];port.goodPrioritiesOrder=populationPriority.value;port.goodPriorities=createGoodPriorities(populationPriority.value);announcement.textContent=`${ports[activeTown].name} will use ${populationPriority.options[populationPriority.selectedIndex].text.toLowerCase()} first in its next needs cycle.`;});
 function renderTownChoices(town){const picker=document.querySelector('#production-choice');picker.replaceChildren();for(const type of town.buildableTypes){const def=BUILDING_TYPES[type];if(!def?.placeable||!def.output)continue;const option=document.createElement('option');option.value=type;option.textContent=def.icon+' '+def.output+' · '+def.label;picker.append(option);}picker.value=selectedBuilding;updateProductionChoice();picker.onchange=()=>{selectedBuilding=picker.value;updateProductionChoice();townViewFeedback.textContent=BUILDING_TYPES[selectedBuilding].label+' selected. Choose an empty city plot.';};}
-function updateProductionChoice(){const def=BUILDING_TYPES[selectedBuilding];if(!def)return;document.querySelector('#production-description').textContent=def.description+' Goods enter Venice’s trade stores as they are made.';}
+function updateProductionChoice(){const def=BUILDING_TYPES[selectedBuilding];if(!def)return;const recipe=def.recipe?` Recipe: ${Object.entries(def.recipe).map(([good,amount])=>`${amount} ${good}`).join(' + ')}.`:'';document.querySelector('#production-description').textContent=def.description+recipe+' Goods enter the city stores when ready.';}
 function openTownView(index){const port=simulation.ports[index];if(!port.town)return;dismissTownOverlays();townViewPort=index;selectedBuilding=port.town.buildableTypes.values().next().value??'glassworks';renderTownChoices(port.town);townView.hidden=false;renderTownBoard();updateTownView({renderBuildings:true});townViewClose.focus();announcement.textContent=ports[index].name+' town opened. Choose what to produce, then select an empty city plot.';}
 function closeTownView({restoreFocus=false}={}){const previous=townViewPort;townView.hidden=true;townViewPort=null;if(restoreFocus&&previous!==null)portButtons[previous].focus();announcement.textContent='Returned to the Mediterranean map.';}
 function renderTownBoard(){if(townViewPort===null)return;const town=simulation.ports[townViewPort].town;drawVeniceBoard(townBoard,town,cell=>{
@@ -176,12 +204,13 @@ function renderTownBoard(){if(townViewPort===null)return;const town=simulation.p
 function updateTownView({renderBuildings=false}={}){if(townViewPort===null)return;const port=simulation.ports[townViewPort],town=port.town,goods=getTownGoods(town),consumer=town.buildings.find(b=>BUILDING_TYPES[b.type]?.input===port.needs),consumeSeconds=consumer?BUILDING_TYPES[consumer.type].consumptionSecondsPerUnit:GOOD_INFO[port.needs]?.seconds;
   document.querySelector('#town-view-output').textContent=[...goods.produced].map(([good,rate])=>(GOOD_INFO[good]?.icon??'')+' '+good+' · '+(rate*60).toFixed(0)+'/min').join('  ·  ')||'No production';
   document.querySelector('#town-view-demand').textContent=`${GOOD_INFO[port.needs]?.icon??''} ${port.needs} demand`;
-  document.querySelector('#town-view-stock').textContent='Stores '+[...goods.produced.keys()].map(good=>(GOOD_INFO[good]?.icon??'')+stockForGood(port,good)).join(' · ')+' · '+port.consumed+' received';
+  document.querySelector('#town-view-stock').textContent='City stores '+Object.entries(port.goodsStock).filter(([,amount])=>amount>0).map(([good,amount])=>(GOOD_INFO[good]?.icon??'📦')+amount+' '+good).join(' · ')+' · '+port.consumed+' used';
+  renderPopulation(port, townView.querySelector('[data-town-population]'), null, null);
   const list=document.querySelector('#town-building-list');
   if(renderBuildings)list.replaceChildren();
   for(const building of town.buildings){const def=BUILDING_TYPES[building.type];let li=list.querySelector(`[data-building-id="${building.id}"]`);
     if(!li&&renderBuildings){li=document.createElement('li');li.dataset.buildingId=building.id;list.append(li);}
-    if(li)li.textContent=def.kind==='producer'?def.icon+' '+def.label+' · '+building.produced+' '+(building.output??def.output)+' · '+(60/def.intervalSeconds).toFixed(0)+'/min':def.icon+' '+def.label+' · '+building.consumed+' received · 1/'+consumeSeconds.toFixed(1)+'s while unloading';}
+    if(li){const recipe=def.recipe?` · uses ${Object.entries(def.recipe).map(([good,amount])=>`${amount} ${good}`).join(' + ')}`:'';li.textContent=def.kind==='producer'?def.icon+' '+def.label+' · '+building.produced+' '+(building.output??def.output)+' · '+(60/def.intervalSeconds).toFixed(0)+'/min'+recipe:def.icon+' '+def.label+' · '+building.consumed+' used · needs imports';}}
 }
 function repositionTownOverlays(){if(activeTown===null)return;if(!radialMenu.hidden)placeRadial(activeTown);if(!townInfo.hidden)positionTownInfo(activeTown);}
 window.addEventListener('resize',repositionTownOverlays);mapViewport.addEventListener('scroll',()=>{if(activeTown!==null&&!townInfo.hidden)positionTownInfo(activeTown);},{passive:true});
@@ -285,7 +314,7 @@ function updateState(){
   renderFleetSummary();
   updateTownView();
   const placed=[];
-  if(activeTown!==null&&!townInfo.hidden){const town=simulation.ports[activeTown];townInfo.querySelector('[data-stock]').textContent=`${town.stock} units available`;townInfo.querySelector('[data-consumed-count]').textContent=`${town.consumed} units consumed from deliveries`;}
+  if(activeTown!==null&&!townInfo.hidden){const town=simulation.ports[activeTown];townInfo.querySelector('[data-stock]').textContent=`${town.stock} units available`;townInfo.querySelector('[data-consumed-count]').textContent=`${town.consumed} goods used by citizens`;renderPopulation(town,townInfo.querySelector('[data-population-tiers]'),townInfo.querySelector('[data-population-total]'),townInfo.querySelector('[data-population-cycle]'));}
   for(const route of simulation.routes){const status=document.querySelector(`.route-row[data-id="${route.id}"] .route-state`);if(status && status.textContent!==routeText(route))status.textContent=routeText(route);const ship=shipLayer.querySelector(`[data-id="${route.id}"]`);if(ship){const p=pointAlong(paths.get(route.id),route.progress);ship.style.left=`${p.x/12}%`;ship.style.top=`${p.y/5.2}%`;const offset=placed.filter(other=>Math.hypot(other.x-p.x,other.y-p.y)<25).length;placed.push(p);ship.style.transform=`translate(-50%, ${10+offset*22}px)`;ship.textContent=`⛵ ${GOOD_INFO[route.good].icon} ${route.cargo}/${CAPACITY} · ${route.status}`;}}
 }
 updatePorts();renderRoutes();
