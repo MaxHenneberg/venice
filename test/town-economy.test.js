@@ -38,3 +38,18 @@ test('Spice Market demand accepts and records only matching arriving cargo', () 
   assert.equal(state.ports[0].consumed, 1);
   assert.equal(state.towns.venezia.buildings.find(b => b.type === 'spiceMarket').consumed, 1);
 });
+
+test('Venice can add a chosen trade-good workshop and ship its output to a matching harbor', () => {
+  const state = createSimulation(), venice = state.ports[0];
+  placeProductionBuilding(state, 0, 'silkAtelier', '2-2');
+  assert.equal(venice.goodsStock.Silk, 0);
+  assert.equal(getTownGoods(venice.town).produced.get('Silk'), 1 / BUILDING_TYPES.silkAtelier.intervalSeconds);
+  advance(state, BUILDING_TYPES.silkAtelier.intervalSeconds);
+  assert.equal(venice.goodsStock.Silk, 1);
+  assert.equal(venice.stock, 13, 'adding another good does not change Venice’s Glass inventory');
+  const route = addRoute(state, 0, 5);
+  assert.equal(route.good, 'Silk', 'the route chooses the source good required by Alessandria');
+  advance(state, GOOD_INFO.Silk.seconds);
+  assert.equal(route.cargo, 1);
+  assert.equal(venice.goodsStock.Silk, 0);
+});
