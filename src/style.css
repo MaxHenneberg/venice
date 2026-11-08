@@ -59,7 +59,8 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 .map-shell{isolation:isolate}
 
 /* The goods badge is useful context on an unselected harbor, but obscures the radial actions when that harbor is open. */
-.harbor[aria-expanded="true"] .harbor-goods{visibility:hidden}
+/* A selected harbor gets radial actions; never leave its goods card behind them. */
+#port-layer .harbor[aria-expanded="true"] .harbor-goods{display:none}
 
 /* The city view stays inside the map frame and uses a compact cartographic layer. */
 .town-view{position:absolute;z-index:12;inset:0;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;background:#e8ece1f5;border:1px solid #aab9a3;color:#314b40;box-shadow:0 10px 30px #30483b40}
