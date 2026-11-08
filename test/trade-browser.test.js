@@ -83,6 +83,8 @@ test('map-only selection shows goods and cargo and supports keyboard/mobile inte
   await page.waitForFunction(()=>[...document.querySelectorAll('.route-state')].some(e=>/Unloading.*Grain/.test(e.textContent)),null,{timeout:45000});
   await page.waitForFunction(()=>{const label=[...document.querySelectorAll('.harbor')].find(e=>e.getAttribute('aria-label').startsWith('Ragusa:'));return /needs Glassware, [1-9]\d* received/.test(label?.getAttribute('aria-label')||'');},null,{timeout:45000});
   await page.waitForFunction(before=>Number(document.querySelector('#treasury').textContent.match(/\d+/)[0])>before,paidBalance,{timeout:5000});
+  await page.setViewportSize({width:1280,height:900});await ragusa.click();await page.getByRole('button',{name:'Town Info'}).click();const ragusaInfo=page.getByRole('dialog',{name:'Ragusa'});await ragusaInfo.waitFor();assert.match(await ragusaInfo.locator('[data-population-tiers]').innerText(),/Food.*Comfort.*Entertainment/,'population needs should use clear labels');
+  await page.setViewportSize({width:390,height:844});assert.ok(await ragusaInfo.locator('.pop-tier-detail').first().evaluate(el=>el.scrollWidth<=el.clientWidth),'population needs should wrap without horizontal overflow on mobile');
   assert.deepEqual(errors,[]);
  }finally{await browser.close();await server.close();}
 });

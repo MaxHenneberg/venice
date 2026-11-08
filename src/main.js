@@ -183,7 +183,7 @@ function renderPopulation(port, root, totalLabel, cycleLabel){
     const detail=document.createElement('small');detail.className='pop-tier-detail';
     if(latest.happiness===null)detail.textContent='No households yet';
     else {
-      const needs=NEEDS.map(need=>`${need.slice(0,1)} ${Math.round(latest.served[need])}/${latest.demand[need]}`).join(' · ');
+      const needs=NEEDS.map(need=>`${need} ${Math.round(latest.served[need])}/${latest.demand[need]}`).join(' · ');
       const goal=progress.filter(item=>item.count>0||item.blocker).map(item=>`${item.action} ${item.count}/${item.target}${item.blocker?` · ${item.blocker}`:''}`).join(' · ');
       detail.textContent=`${Math.round(latest.happiness)}% happy · ${needs}${goal?` · ${goal}`:''}`;
     }
@@ -366,4 +366,5 @@ class MapScene extends Phaser.Scene {
   }
 }
 new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1200,height:520,backgroundColor:'#a9c9c4',input:{touch:{capture:false}},scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:MapScene,render:{antialias:true}});
+
 
