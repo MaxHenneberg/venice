@@ -77,3 +77,13 @@ test('route quote is shown before payment and insufficient funds prevents purcha
   assert.equal(rejected,true);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
  }finally{await browser.close();await server.close();}
 });
+
+test('portrait mobile radial actions stay clear of toolbar and remain clickable',async()=>{
+ const server=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'silent'});await server.listen();const browser=await chromium.launch({headless:true,executablePath:candidates.find(existsSync)});
+ try{
+  const page=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,isMobile:true});const errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`);await page.locator('canvas').waitFor();
+  const venice=page.getByRole('button',{name:/Venezia: produces Glass/}),toolbar=page.locator('.map-tools');await venice.click();const infoAction=page.getByRole('button',{name:'Town Info'}),routeAction=page.getByRole('button',{name:'Create Trade Route'});assert.ok(await infoAction.isVisible());assert.ok(await routeAction.isVisible());
+  const toolbarBox=await toolbar.boundingBox();for(const action of [infoAction,routeAction]){const box=await action.boundingBox();assert.ok(box.x+box.width<=toolbarBox.x||box.x>=toolbarBox.x+toolbarBox.width||box.y+box.height<=toolbarBox.y||box.y>=toolbarBox.y+toolbarBox.height,'radial action must not overlap map tools');const hit=await page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.closest('.radial-action')?.id,{x:box.x+box.width/2,y:box.y+box.height/2});assert.equal(hit,await action.getAttribute('id'),'each action center must hit its own radial control');}
+  await infoAction.click();const info=page.getByRole('dialog',{name:'Venezia'});assert.ok(await info.isVisible());await page.keyboard.press('Escape');await venice.click();await routeAction.click();assert.match(await page.locator('#map-help-text').innerText(),/From Venezia/);await page.getByRole('button',{name:/Ragusa: produces Salt/}).click();assert.match(await page.locator('#map-instruction').innerText(),/total \d+ ducats/);assert.deepEqual(errors,[]);
+ }finally{await browser.close();await server.close();}
+});

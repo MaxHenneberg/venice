@@ -25,9 +25,9 @@ const voyagesToggle=document.querySelector('#voyages-toggle'), voyagesPanel=docu
 voyagesToggle.addEventListener('click',()=>{const expanded=voyagesToggle.getAttribute('aria-expanded')==='true';voyagesToggle.setAttribute('aria-expanded',String(!expanded));voyagesPanel.hidden=expanded;});
 let origin=null,pending=null,scene,activeTown=null;
 const radialMenu=document.createElement('div');radialMenu.className='harbor-radial';radialMenu.hidden=true;radialMenu.setAttribute('role','group');radialMenu.setAttribute('aria-label','Town actions');
-const townInfoButton=document.createElement('button');townInfoButton.type='button';townInfoButton.className='radial-action';townInfoButton.innerHTML='<span class="radial-glyph" aria-hidden="true">◉</span><span>Town Info</span>';
-const tradeButton=document.createElement('button');tradeButton.type='button';tradeButton.className='radial-action';tradeButton.innerHTML='<span class="radial-glyph" aria-hidden="true">↗</span><span>Create Trade Route</span>';
-radialMenu.append(townInfoButton,tradeButton);portLayer.append(radialMenu);
+const townInfoButton=document.createElement('button');townInfoButton.type='button';townInfoButton.id='town-info-action';townInfoButton.className='radial-action';townInfoButton.innerHTML='<span class="radial-glyph" aria-hidden="true">◉</span><span>Town Info</span>';
+const tradeButton=document.createElement('button');tradeButton.type='button';tradeButton.id='create-route-action';tradeButton.className='radial-action';tradeButton.innerHTML='<span class="radial-glyph" aria-hidden="true">↗</span><span>Create Trade Route</span>';
+radialMenu.append(townInfoButton,tradeButton);mapShell.append(radialMenu);
 const portButtons=ports.map((port,index)=>{
   const button=document.createElement('button');button.type='button';button.className='harbor';button.style.left=`${port.x/12}%`;button.style.top=`${port.y/5.2}%`;
   button.innerHTML=`<span class="harbor-name">${port.name}</span><span class="harbor-goods" aria-hidden="true"><span class="good-made"><small>MAKES</small>${GOOD_INFO[simulation.ports[index].good].icon}</span><span class="good-needed"><small>NEEDS</small>${GOOD_INFO[simulation.ports[index].needs].icon}</span></span><span class="harbor-dot" aria-hidden="true"></span>`;
@@ -44,7 +44,23 @@ for(const [name,info] of Object.entries(GOOD_INFO)){const row=document.createEle
 const keyNote=document.createElement('p');keyNote.textContent=`The same interval applies to loading and unloading each unit. Ports produce one unit every 5 seconds; ships carry up to 8. Each unit delivered earns ${DELIVERY_REWARD} ducats.`;key.append(keyNote);
 function updatePorts(){portLayer.classList.toggle('route-selecting',origin!==null);portButtons.forEach((button,i)=>{const p=simulation.ports[i],selected=origin===i||pending?.to===i||activeTown===i;button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received and ${p.consumed} consumed. ${origin===i?'Starting harbor selected.':pending?.to===i?'Destination harbor selected.':activeTown===i?'Town actions open.':'Open town actions.'}`);button.setAttribute('aria-pressed',String(selected));});}
 function dismissTownOverlays({restoreFocus=false}={}){const previous=activeTown;activeTown=null;radialMenu.hidden=true;townInfo.hidden=true;townInfo.removeAttribute('style');if(previous!==null)portButtons[previous].setAttribute('aria-expanded','false');if(restoreFocus&&previous!==null)portButtons[previous].focus();updatePorts();}
-function placeRadial(index){const button=portButtons[index],layer=portLayer.getBoundingClientRect(),anchor=button.getBoundingClientRect();radialMenu.hidden=false;radialMenu.style.left='0px';radialMenu.style.top='0px';const menu=radialMenu.getBoundingClientRect(),centerX=anchor.left-layer.left+anchor.width/2,centerY=anchor.top-layer.top+anchor.height/2;radialMenu.style.left=`${Math.max(menu.width/2+4,Math.min(centerX,layer.width-menu.width/2-4))}px`;radialMenu.style.top=`${Math.max(menu.height/2+4,Math.min(centerY,layer.height-menu.height/2-4))}px`;radialMenu.dataset.town=String(index);}
+function placeRadial(index){
+  const button=portButtons[index],shell=mapShell.getBoundingClientRect(),anchor=button.getBoundingClientRect(),toolbar=document.querySelector('.map-tools').getBoundingClientRect();
+  radialMenu.hidden=false;radialMenu.style.left='0px';radialMenu.style.top='0px';const menu=radialMenu.getBoundingClientRect(),halfW=menu.width/2,halfH=menu.height/2,margin=4;
+  const clamp=(value,half,size)=>Math.max(half+margin,Math.min(value,size-half-margin));
+  const toolbarRect={left:toolbar.left-shell.left,right:toolbar.right-shell.left,top:toolbar.top-shell.top,bottom:toolbar.bottom-shell.top};
+  const intersectsToolbar=(x,y)=>x+halfW>toolbarRect.left&&x-halfW<toolbarRect.right&&y+halfH>toolbarRect.top&&y-halfH<toolbarRect.bottom;
+  const anchorX=anchor.left-shell.left+anchor.width/2,anchorY=anchor.top-shell.top+anchor.height/2;
+  const candidates=[
+    [anchorX,anchorY],
+    [toolbarRect.left-halfW-8,anchorY],
+    [anchorX,toolbarRect.bottom+halfH+8],
+    [toolbarRect.left-halfW-8,toolbarRect.bottom+halfH+8],
+    [anchorX,anchorY+halfH+12]
+  ].map(([x,y])=>[clamp(x,halfW,shell.width),clamp(y,halfH,shell.height)]);
+  const position=candidates.find(([x,y])=>!intersectsToolbar(x,y))??candidates[0];
+  radialMenu.style.left=`${position[0]}px`;radialMenu.style.top=`${position[1]}px`;radialMenu.dataset.town=String(index);
+}
 function closeLandscapeControls(){if(window.matchMedia('(orientation: landscape) and (max-height: 500px) and (max-width: 1000px)').matches){landscapeMenu.setAttribute('aria-expanded','false');landscapeControls.classList.remove('is-open');}}
 function openTownActions(index){closeLandscapeControls();dismissTownOverlays();activeTown=index;placeRadial(index);portButtons[index].setAttribute('aria-expanded','true');updatePorts();townInfoButton.focus({preventScroll:true});}
 function openTownInfo(index){radialMenu.hidden=true;const port=simulation.ports[index],good=GOOD_INFO[port.good],need=GOOD_INFO[port.needs];townInfo.querySelector('[data-town-name]').textContent=ports[index].name;townInfo.querySelector('[data-produced]').textContent=`${good.icon} ${port.good}`;townInfo.querySelector('[data-production-rate]').textContent=`1 unit / ${PRODUCTION_SECONDS}s · up to ${formatRate(PRODUCTION_SECONDS)} per minute`;
