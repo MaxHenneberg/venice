@@ -54,3 +54,6 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 .town-info-popover :focus-visible{outline:2px solid #a65b3f;outline-offset:2px}
 @media(max-width:700px){.harbor-radial{width:210px;height:100px}.radial-action{width:100px;min-height:44px;font-size:9px}.town-info-popover{padding:15px;width:min(320px,calc(100vw - 20px))}.town-info-popover h2{font-size:23px}}
 @media (orientation:landscape) and (max-height:500px) and (max-width:1000px){.harbor-radial{width:226px;height:92px}.radial-action{width:108px;min-height:44px;padding:6px;font-size:9px}.town-info-popover{max-height:calc(100dvh - 20px);padding:12px}.town-info-popover h2{font-size:20px;margin-bottom:7px}.town-stat{padding:7px 0}.town-stat-detail{font-size:10px}}
+
+/* Keep map overlays in one stacking context so the radial actions outrank the toolbar. */
+.map-shell{isolation:isolate}

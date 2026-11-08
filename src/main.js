@@ -45,6 +45,9 @@ const keyNote=document.createElement('p');keyNote.textContent=`The same interval
 function updatePorts(){portLayer.classList.toggle('route-selecting',origin!==null);portButtons.forEach((button,i)=>{const p=simulation.ports[i],selected=origin===i||pending?.to===i||activeTown===i;button.setAttribute('aria-label',`${ports[i].name}: produces ${p.good}, ${p.stock} in stock; needs ${p.needs}, ${p.received} received and ${p.consumed} consumed. ${origin===i?'Starting harbor selected.':pending?.to===i?'Destination harbor selected.':activeTown===i?'Town actions open.':'Open town actions.'}`);button.setAttribute('aria-pressed',String(selected));});}
 function dismissTownOverlays({restoreFocus=false}={}){const previous=activeTown;activeTown=null;radialMenu.hidden=true;townInfo.hidden=true;townInfo.removeAttribute('style');if(previous!==null)portButtons[previous].setAttribute('aria-expanded','false');if(restoreFocus&&previous!==null)portButtons[previous].focus();updatePorts();}
 function placeRadial(index){
+  // Keep this overlay outside Phaser's #port-layer stacking context even if a
+  // future map-layer refactor temporarily reparents it.
+  if(radialMenu.parentElement!==mapShell)mapShell.append(radialMenu);
   const button=portButtons[index],shell=mapShell.getBoundingClientRect(),anchor=button.getBoundingClientRect(),toolbar=document.querySelector('.map-tools').getBoundingClientRect();
   radialMenu.hidden=false;radialMenu.style.left='0px';radialMenu.style.top='0px';const menu=radialMenu.getBoundingClientRect(),halfW=menu.width/2,halfH=menu.height/2,margin=4;
   const clamp=(value,half,size)=>Math.max(half+margin,Math.min(value,size-half-margin));
