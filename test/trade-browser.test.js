@@ -80,8 +80,8 @@ test('map-only selection shows goods and cargo and supports keyboard/mobile inte
    await beginRouteFrom(page,venice);assert.equal(await page.locator('.good-needed:visible').count(),7);await page.locator('.map-viewport').click({position:{x:10,y:200}});assert.equal(await page.locator('.harbor-goods:visible').count(),0);await beginRouteFrom(page,beirut);await page.getByRole('button',{name:/Corfù: produces/}).click();assert.match(await page.locator('#map-instruction').innerText(),/needs Salt.*Spices will be held/);await page.getByRole('button',{name:'Establish route'}).click();assert.equal(await page.locator('.ship-label').count(),1);
    await beginRouteFrom(page,alexandria);await ragusa.click();await page.getByRole('button',{name:'Establish route'}).click();
   const paidBalance=Number((await page.locator('#treasury').innerText()).match(/\d+/)[0]);
-  await page.waitForFunction(()=>[...document.querySelectorAll('.route-state')].some(e=>/Holding.*Glass.*needs Salt/.test(e.textContent)),null,{timeout:45000});
-  await page.waitForFunction(()=>{const label=[...document.querySelectorAll('.harbor')].find(e=>e.getAttribute('aria-label').startsWith('Ragusa:'));return /needs Glass, [1-9]\d* received/.test(label?.getAttribute('aria-label')||'');},null,{timeout:45000});
+  await page.waitForFunction(()=>[...document.querySelectorAll('.route-state')].some(e=>/Unloading.*Grain/.test(e.textContent)),null,{timeout:45000});
+  await page.waitForFunction(()=>{const label=[...document.querySelectorAll('.harbor')].find(e=>e.getAttribute('aria-label').startsWith('Ragusa:'));return /needs Grain, [1-9]\d* received/.test(label?.getAttribute('aria-label')||'');},null,{timeout:45000});
   await page.waitForFunction(before=>Number(document.querySelector('#treasury').textContent.match(/\d+/)[0])>before,paidBalance,{timeout:5000});
   assert.deepEqual(errors,[]);
  }finally{await browser.close();await server.close();}
