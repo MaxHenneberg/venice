@@ -72,9 +72,26 @@ function openTownInfo(index){radialMenu.hidden=true;const port=simulation.ports[
   townInfo.querySelector('[data-consumed-count]').textContent=`${port.consumed} units consumed from deliveries`;
   townInfo.hidden=false;positionTownInfo(index);townInfo.querySelector('.town-info-close').focus();announcement.textContent=`${ports[index].name} town information opened.`;}
 function formatRate(seconds){return `${(60/seconds).toFixed(1)} units`;}
-function positionTownInfo(index){const shell=mapShell.getBoundingClientRect(),button=portButtons[index].getBoundingClientRect();townInfo.style.left='0px';townInfo.style.top='0px';const box=townInfo.getBoundingClientRect(),margin=10;let left=button.left-shell.left+button.width/2-box.width/2,top=button.top-shell.top+button.height+12;
-  if(top+box.height>shell.height-margin)top=button.top-shell.top-box.height-12;
-  townInfo.style.left=`${Math.max(margin,Math.min(left,shell.width-box.width-margin))}px`;townInfo.style.top=`${Math.max(margin,Math.min(top,shell.height-box.height-margin))}px`;}
+function positionTownInfo(index){
+  const shell=mapShell.getBoundingClientRect(),button=portButtons[index].getBoundingClientRect(),toolbar=document.querySelector('.map-tools').getBoundingClientRect();
+  townInfo.style.left='0px';townInfo.style.top='0px';const box=townInfo.getBoundingClientRect(),margin=10;
+  const clamp=(value,size)=>Math.max(margin,Math.min(value,size-margin));
+  const toolbarRect={left:toolbar.left-shell.left,right:toolbar.right-shell.left,top:toolbar.top-shell.top,bottom:toolbar.bottom-shell.top};
+  const overlapsToolbar=(left,top)=>left+box.width>toolbarRect.left&&left<toolbarRect.right&&top+box.height>toolbarRect.top&&top<toolbarRect.bottom;
+  const anchoredLeft=button.left-shell.left+button.width/2-box.width/2,anchoredTop=button.top-shell.top+button.height+12;
+  let left=clamp(anchoredLeft,shell.width-box.width),top=clamp(anchoredTop,shell.height-box.height);
+  if(overlapsToolbar(left,top)){
+    const candidates=[
+      [left,toolbarRect.bottom+margin],
+      [left,toolbarRect.top-box.height-margin],
+      [toolbarRect.left-box.width-margin,anchoredTop],
+      [toolbarRect.right+margin,anchoredTop]
+    ].map(([x,y])=>[clamp(x,shell.width-box.width),clamp(y,shell.height-box.height)]);
+    const clear=candidates.find(([x,y])=>!overlapsToolbar(x,y));
+    if(clear)[left,top]=clear;
+  }
+  townInfo.style.left=`${left}px`;townInfo.style.top=`${top}px`;
+}
 function repositionTownOverlays(){if(activeTown===null)return;if(!radialMenu.hidden)placeRadial(activeTown);if(!townInfo.hidden)positionTownInfo(activeTown);}
 window.addEventListener('resize',repositionTownOverlays);mapViewport.addEventListener('scroll',()=>{if(activeTown!==null&&!townInfo.hidden)positionTownInfo(activeTown);},{passive:true});
 function beginRouteSelection(index){closeLandscapeControls();dismissTownOverlays();origin=index;pending=null;popover.hidden=true;confirm.hidden=true;help.textContent=`From ${ports[index].name}: select a destination, or select open water to cancel.`;announcement.textContent=help.textContent;updatePorts();portButtons[index].focus();}
