@@ -8,6 +8,64 @@ import { BUILDING_TYPES, getTownGoods, stockForGood } from './town-economy.js';
 import { drawVeniceBoard } from './town-map.js';
 
 const mapViewport = document.querySelector('.map-viewport');
+const mapWorld = document.querySelector('#map-zoom-spacer');
+const mapGame = document.querySelector('#game');
+const mapPortLayer = document.querySelector('#port-layer');
+const mapShipLayer = document.querySelector('#ship-layer');
+const mapZoomValue = document.querySelector('#map-zoom-value');
+const mapZoomOut = document.querySelector('#map-zoom-out');
+const mapZoomIn = document.querySelector('#map-zoom-in');
+const mapZoomReset = document.querySelector('#map-zoom-reset');
+const mapAspect = 1200 / 520;
+let mapZoom = 1;
+let mapBaseWidth = 0;
+function layoutMapStage({ preserveCenter = true, previousZoom = mapZoom } = {}) {
+  const oldWidth = mapBaseWidth;
+  const oldWorldWidth = oldWidth * previousZoom;
+  const oldWorldHeight = oldWidth / mapAspect * previousZoom;
+  const centerX = oldWorldWidth ? (mapViewport.scrollLeft + mapViewport.clientWidth / 2) / oldWorldWidth : 0.5;
+  const centerY = oldWorldHeight ? (mapViewport.scrollTop + mapViewport.clientHeight / 2) / oldWorldHeight : 0.5;
+  const mobile = window.matchMedia('(max-width: 700px)').matches;
+  const landscapePhone = window.matchMedia('(orientation: landscape) and (max-height: 500px) and (max-width: 1000px)').matches;
+  const responsiveMinimum = landscapePhone ? Math.max(0, (window.innerHeight - 10) * mapAspect) : (mobile ? 1400 : 0);
+  mapBaseWidth = Math.max(mapViewport.clientWidth, responsiveMinimum);
+  const stageWidth = mapBaseWidth * mapZoom;
+  const stageHeight = mapBaseWidth / mapAspect * mapZoom;
+  mapWorld.style.width = `${stageWidth}px`;
+  mapWorld.style.height = `${stageHeight}px`;
+  mapGame.style.width = `${stageWidth}px`;
+  mapGame.style.height = `${stageHeight}px`;
+  for (const layer of [mapPortLayer, mapShipLayer]) {
+    layer.style.width = `${stageWidth}px`;
+    layer.style.height = `${stageHeight}px`;
+    layer.style.setProperty('--map-zoom', mapZoom);
+  }
+  mapZoomValue.textContent = `${Math.round(mapZoom * 100)}%`;
+  mapZoomOut.disabled = mapZoom <= 0.75;
+  mapZoomIn.disabled = mapZoom >= 2;
+  mapZoomReset.disabled = mapZoom === 1;
+  if (preserveCenter && oldWidth) {
+    // Commit the new scroll dimensions before setting the retained center.
+    void mapWorld.offsetWidth;
+    const restoreCenter = () => {
+      mapViewport.scrollLeft = centerX * mapBaseWidth * mapZoom - mapViewport.clientWidth / 2;
+      mapViewport.scrollTop = centerY * mapBaseWidth / mapAspect * mapZoom - mapViewport.clientHeight / 2;
+    };
+    restoreCenter();
+    requestAnimationFrame(restoreCenter);
+  }
+}
+function setMapZoom(value) {
+  const previousZoom = mapZoom;
+  mapZoom = Math.max(0.75, Math.min(2, Math.round(value * 100) / 100));
+  layoutMapStage({ previousZoom });
+  announcement.textContent = `Map zoom ${Math.round(mapZoom * 100)} percent.`;
+}
+mapZoomOut.addEventListener('click', () => setMapZoom(mapZoom - 0.25));
+mapZoomIn.addEventListener('click', () => setMapZoom(mapZoom + 0.25));
+mapZoomReset.addEventListener('click', () => setMapZoom(1));
+layoutMapStage({ preserveCenter: false });
+window.addEventListener('resize', () => layoutMapStage());
 mapViewport.addEventListener('keydown', event => {
   if (event.target !== mapViewport || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
   event.preventDefault();
