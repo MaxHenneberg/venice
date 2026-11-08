@@ -24,6 +24,25 @@
           <div class="town-stat"><span class="town-stat-icon" aria-hidden="true">IN</span><div><strong>Consumes <span data-consumed></span></strong><span class="town-stat-detail" data-consumption-rate></span><span class="town-stat-detail" data-consumed-count></span></div></div>
           <p class="town-stat-note">Consumption occurs only when a compatible cargo unloads here.</p>
         </section>
+        <section id="town-view" class="town-view" role="dialog" aria-modal="true" aria-labelledby="town-view-title" hidden>
+          <header class="town-view-header">
+            <div><p class="town-view-kicker">THE LAGOON · CIRCA 1500</p><h2 id="town-view-title">Venice</h2></div>
+            <div class="town-view-ledger" aria-label="Town production and inventory">
+              <span id="town-view-output"></span><span id="town-view-demand"></span><span id="town-view-stock"></span>
+            </div>
+            <button id="town-view-close" class="town-view-close" type="button" aria-label="Return to the Mediterranean map">×</button>
+          </header>
+          <div class="town-view-body">
+            <div class="town-board-wrap"><svg id="town-board" class="town-board" aria-label="Venice building plots"></svg></div>
+            <aside class="town-build-panel" aria-label="Building and town economy">
+              <p class="town-panel-kicker">BUILD IN THE CITY</p>
+              <button id="select-glassworks" class="building-choice" type="button" aria-pressed="true"><span aria-hidden="true">🏺</span><span><strong>Glassworks</strong><small>Produces Glass · 1 every 5 seconds</small></span><span class="choice-check" aria-hidden="true">✓</span></button>
+              <p id="town-view-feedback" class="town-view-feedback" role="status" aria-live="polite">Select an empty hex to place a Glassworks.</p>
+              <div class="town-building-list"><p class="town-panel-kicker">DISTRICTS</p><ul id="town-building-list"></ul></div>
+              <p class="town-view-footnote">A schematic lagoon city inspired by a 1500 bird’s-eye plan. The hex plots are a game layer.</p>
+            </aside>
+          </div>
+        </section>
         <div class="map-help"><span id="map-help-text">Select two harbors to trade</span> <span>· Scroll map to explore</span></div>
       </section>
     </main>

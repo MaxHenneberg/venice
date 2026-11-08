@@ -1,5 +1,6 @@
 import { seaPath, routeDistanceNm } from './sea-routes.js';
 import { ports as mapPorts } from './geography.js';
+import { TOWN_BLUEPRINTS, createTownState, getTownGoods, addTownBuilding, advanceTownProduction, recordTownConsumption } from './town-economy.js';
 export const goods = ['Glass', 'Salt', 'Olive oil', 'Wine', 'Silk', 'Grain', 'Spices'];
 export const GOOD_INFO = {
   'Glass': { icon:'🏺', seconds:1.0 }, 'Salt': { icon:'🧂', seconds:.5 },
@@ -22,7 +23,30 @@ export function quoteRoute(from,to,path) {
 export const PRODUCTION_SECONDS = 5;
 export const TRAVEL_SECONDS = 12;
 export function createSimulation() {
-  return { balance: STARTING_BALANCE, ports: goods.map((good, i) => ({ good, needs: goods[(i + goods.length - 1) % goods.length], stock: 12, received: 0, consumed: 0, clock: 0 })), routes: [], nextId: 1 };
+  const ports = goods.map((good, i) => ({ good, needs: goods[(i + goods.length - 1) % goods.length], needsGoods: [goods[(i + goods.length - 1) % goods.length]], stock: 12, received: 0, consumed: 0, clock: 0, town: null }));
+  const towns = Object.fromEntries(Object.entries(TOWN_BLUEPRINTS).map(([id, blueprint]) => [id, createTownState(blueprint)]));
+  for (const town of Object.values(towns)) {
+    const port = ports[town.portIndex];
+    port.town = town;
+    const economy = getTownGoods(town);
+    port.good = economy.produced.keys().next().value ?? port.good;
+    port.needsGoods = economy.demanded.length ? economy.demanded : port.needsGoods;
+    port.needs = port.needsGoods[0];
+    port.consumptionSeconds = economy.consumptionSeconds;
+  }
+  return { balance: STARTING_BALANCE, ports, towns, routes: [], nextId: 1 };
+}
+
+export function placeProductionBuilding(state, portIndex, type, cell) {
+  const port = state.ports[portIndex], town = port?.town;
+  if (!town) throw new Error('This town does not have a building view yet.');
+  const building = addTownBuilding(town, type, cell);
+  const economy = getTownGoods(town);
+  port.good = economy.produced.keys().next().value ?? port.good;
+  port.needsGoods = economy.demanded.length ? economy.demanded : [];
+  port.needs = port.needsGoods[0] ?? null;
+  port.consumptionSeconds = economy.consumptionSeconds;
+  return building;
 }
 export function addRoute(state, from, to, path) {
   if (!Number.isInteger(from) || !Number.isInteger(to) || !state.ports[from] || !state.ports[to] || from === to) throw new Error('Choose two different ports.');
@@ -41,7 +65,10 @@ export function advance(state,seconds) {
   if(!Number.isFinite(seconds)||seconds<=0)return;
   while(seconds>1e-9) {
     const dt=Math.min(seconds,.05);seconds-=dt;
-    for(const port of state.ports){port.clock+=dt;while(port.clock+1e-9>=PRODUCTION_SECONDS){port.clock-=PRODUCTION_SECONDS;port.stock=Math.min(40,port.stock+1);}}
+    for(const port of state.ports){
+      if (port.town) advanceTownProduction(port.town,port,dt);
+      else {port.clock+=dt;while(port.clock+1e-9>=PRODUCTION_SECONDS){port.clock-=PRODUCTION_SECONDS;port.stock=Math.min(40,port.stock+1);}}
+    }
     for(const route of state.routes){
       const source=state.ports[route.from],destination=state.ports[route.to],interval=GOOD_INFO[route.good].seconds;
       if(route.status==='Awaiting demand')continue;
@@ -53,11 +80,11 @@ export function advance(state,seconds) {
       }
       if(route.status==='Unloading'){
         route.handling+=dt;
-        if(route.handling+1e-9>=interval){route.handling-=interval;route.cargo--;destination.received++;destination.consumed++;state.balance+=DELIVERY_REWARD;if(route.cargo===0){route.status='Returning';route.direction=-1;route.handling=0;}}
+        if(route.handling+1e-9>=interval){route.handling-=interval;route.cargo--;destination.received++;destination.consumed++;if(destination.town)recordTownConsumption(destination.town,route.good);state.balance+=DELIVERY_REWARD;if(route.cargo===0){route.status='Returning';route.direction=-1;route.handling=0;}}
         continue;
       }
       route.progress+=route.direction*dt/TRAVEL_SECONDS;
-      if(route.progress>=1){route.progress=1;route.handling=0;route.status=destination.needs===route.good?'Unloading':'Awaiting demand';}
+      if(route.progress>=1){route.progress=1;route.handling=0;route.status=destination.needsGoods?.includes(route.good)||destination.needs===route.good?'Unloading':'Awaiting demand';}
       else if(route.progress<=0&&route.direction===-1){route.progress=0;route.direction=1;route.status='Loading';route.handling=0;}
     }
   }
