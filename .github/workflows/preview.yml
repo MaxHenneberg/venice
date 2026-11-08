@@ -1,6 +1,8 @@
 name: Verify and preview
 
 on:
+  push:
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
@@ -9,8 +11,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: preview-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: pages-${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   verify:
@@ -29,6 +31,26 @@ jobs:
         with:
           name: site
           path: dist
+
+  publish-main:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: dist
+      - name: Publish latest main site
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          keep_files: true
+      - name: Report main site URL
+        run: |
+          echo "Main site: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> "$GITHUB_STEP_SUMMARY"
+
   preview:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     needs: verify
@@ -48,4 +70,3 @@ jobs:
       - name: Report preview URL
         run: |
           echo "Preview: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/" >> "$GITHUB_STEP_SUMMARY"
-
