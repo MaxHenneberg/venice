@@ -29,7 +29,7 @@ test('wide displays use the available map width and zoom scales the entire tradi
   }finally{await browser.close();await server.close();}
 });
 
-test('map zoom remains scrollable in phone landscape without page overflow or overlay drift',async()=>{
+test('phone landscape fits the map at 100% and only pans after deliberate zoom',async()=>{
   const server=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'silent'});await server.listen();
   const browser=await chromium.launch({headless:true,executablePath:candidates.find(existsSync)});
   try{
@@ -37,7 +37,11 @@ test('map zoom remains scrollable in phone landscape without page overflow or ov
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`);await page.locator('canvas').waitFor();
     const viewport=page.locator('.map-viewport'),game=page.locator('#game'),spacer=page.locator('#map-zoom-spacer');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
-    const map=await viewport.boundingBox(),stage=await game.boundingBox();assert.ok(map.height>=375&&map.height<=390);assert.ok(stage.width>=map.width);
+    const map=await viewport.boundingBox(),stage=await game.boundingBox();
+    assert.ok(map.height>=375&&map.height<=390);
+    assert.ok(Math.abs(stage.width-map.width)<=1,`default map should fit the landscape viewport (${stage.width} vs ${map.width})`);
+    assert.ok(stage.height<map.height,`fit-width preserves the map aspect ratio (${stage.height} tall in ${map.height})`);
+    assert.equal(await viewport.evaluate(el=>el.scrollWidth<=el.clientWidth),true,'no horizontal map scrollbar should appear at 100%');
     const before=await viewport.evaluate(el=>el.scrollWidth);await page.getByRole('button',{name:'Zoom in'}).click();
     assert.ok(await viewport.evaluate(el=>el.scrollWidth)>before);assert.ok((await spacer.boundingBox()).height>map.height);
     await page.locator('.map-viewport').evaluate(el=>{el.scrollLeft=0});

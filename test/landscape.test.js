@@ -15,7 +15,8 @@ test('phone landscape keeps map, controls and paid route flow usable without des
       const page=await browser.newPage({viewport:size,hasTouch:true,isMobile:true,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
       await page.goto(url);await page.locator('canvas').waitFor();
       const shell=page.locator('.map-shell'),viewport=page.locator('.map-viewport'),menu=page.getByRole('button',{name:'Map controls'});
-      const map=await viewport.boundingBox();assert.ok(map.height>=size.height-15);assert.ok(map.y+map.height<=size.height);assert.ok(await viewport.evaluate(el=>el.scrollWidth>el.clientWidth));
+      const map=await viewport.boundingBox();assert.ok(map.height>=size.height-15);assert.ok(map.y+map.height<=size.height);assert.equal(await viewport.evaluate(el=>el.scrollWidth<=el.clientWidth),true,'the default map fits the phone landscape viewport');
+      await page.getByRole('button',{name:'Zoom in'}).tap();assert.ok(await viewport.evaluate(el=>el.scrollWidth>el.clientWidth),'zooming in enables deliberate horizontal panning');await page.getByRole('button',{name:'Reset zoom'}).tap();assert.equal(await viewport.evaluate(el=>el.scrollWidth<=el.clientWidth),true);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);assert.equal(await menu.isVisible(),true);assert.ok((await menu.boundingBox()).height>=44);
       assert.equal(await page.getByRole('button',{name:'Harbor labels: off'}).isHidden(),true);
       const venice=page.getByRole('button',{name:/Venezia: produces Glass/});assert.equal(await venice.evaluate(el=>getComputedStyle(el,'::before').width),'44px');
