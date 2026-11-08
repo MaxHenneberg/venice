@@ -5,12 +5,29 @@ import veniceMapUrl from './assets/venice-lagoon-1500.png';
 const SVG = 'http://www.w3.org/2000/svg';
 const cellParts = cell => cell.split('-').map(Number);
 
+// The town board is drawn over a bird's-eye view of Venice, whose dense
+// districts bend around canals rather than forming a rectangular grid. Each
+// row therefore has its own origin, pitch, and shoreline offset. The IDs stay
+// stable for building saves while their positions follow the real city shape.
+const VENICE_PLOT_ROWS = {
+  1: { x: 112, y: 100, pitch: 66, bend: [-5, -7, -8, -5, 0, 5, 9, 12, 12] }, // Cannaregio arc
+  2: { x: 0, y: 155, pitch: 68, columns: [140, 200, 260, 350, 420, 535, 615, 685, 730], bend: [0, -2, -3, -2, 0, 2, 4, 5, 4] }, // northern sestiere
+  3: { x: 77, y: 191, pitch: 72, bend: [0, 2, 4, 5, 4, 2, 0, -2, -4] }, // San Polo and San Marco
+  4: { x: 96, y: 272, pitch: 74, bend: [3, 2, 0, -2, -3, -2, 0, 2, 4] }, // Dorsoduro and Castello
+  6: { x: 122, y: 430, pitch: 76, bend: [0, -2, -2, -1, 1, 2, 2] } // Giudecca
+};
+
 export function townCellCenter(cell) {
   const [q, r] = cellParts(cell);
-  return { x: 115 + q * 70 + (r % 2) * 35, y: r === 6 ? 430 : 100 + (r - 1) * 60 };
+  const row = VENICE_PLOT_ROWS[r];
+  if (!row) throw new Error(`Unknown Venice plot row: ${r}`);
+  return {
+    x: (row.columns?.[q] ?? row.x + q * row.pitch) + (r % 2) * row.pitch / 2,
+    y: row.y + (row.bend[q] ?? 0)
+  };
 }
 
-export function hexPoints(cell, radius = cellParts(cell)[1] === 6 ? 30 : 40) {
+export function hexPoints(cell, radius = 34) {
   const { x, y } = townCellCenter(cell);
   return Array.from({ length: 6 }, (_, i) => {
     const angle = (Math.PI / 3) * i - Math.PI / 6;
