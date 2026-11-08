@@ -1,5 +1,6 @@
 import { BUILDING_TYPES } from './town-economy.js';
 import './town-map.css';
+import veniceMapUrl from './assets/venice-lagoon-1500.png';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const cellParts = cell => cell.split('-').map(Number);
@@ -52,14 +53,12 @@ export function drawVeniceBoard(svg, town, onSelectTile) {
   svg.setAttribute('viewBox', '0 0 900 500');
   svg.setAttribute('role', 'group');
   svg.setAttribute('aria-label', 'Venice lagoon building plots');
-  const mapImage = create('image', {
-    href: new URL('./assets/venice-lagoon-1500.png', import.meta.url).href,
-    x: 0, y: 0, width: 900, height: 500,
-    preserveAspectRatio: 'none',
-    class: 'venice-historic-map',
-    'aria-hidden': 'true'
-  });
-  svg.append(mapImage);
+  const mapImage = svg.parentElement.querySelector('.venice-historic-map') || document.createElement('img');
+  mapImage.className = 'venice-historic-map';
+  mapImage.src = veniceMapUrl;
+  mapImage.alt = '';
+  mapImage.setAttribute('aria-hidden', 'true');
+  if (!mapImage.parentElement) svg.parentElement.prepend(mapImage);
 
   // Match the plotted hex layer to Venice's dry urban island and Giudecca. The
   // central Grand Canal and the lagoon stay outside these land silhouettes.

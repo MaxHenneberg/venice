@@ -1,5 +1,6 @@
-.town-board-wrap{background:#89b6ae}
-.venice-historic-map{display:block;pointer-events:none;image-rendering:auto}
+.town-board-wrap{position:relative;background:#89b6ae}
+.venice-historic-map{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill;pointer-events:none;image-rendering:auto;z-index:0}
+.town-board{position:relative;z-index:1;background:transparent}
 .town-tile-layer{pointer-events:auto}
 .town-hex{fill:#f2e6c46b;stroke:#77694f9c;stroke-width:1.35;vector-effect:non-scaling-stroke}
 .town-tile.is-empty:hover .town-hex,.town-tile.is-empty:focus .town-hex{fill:#fff7dda8;stroke:#8f4e38;stroke-width:2.5}
