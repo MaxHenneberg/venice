@@ -13,9 +13,14 @@ test('cities get deterministic, slightly varied starting household counts', () =
 
 test('simulation gives every harbor a city population and opening provisions', async () => {
   const { createSimulation } = await import('../src/simulation.js');
-  const state = createSimulation();
+  const state = createSimulation(), repeat = createSimulation();
   assert.equal(state.ports.length, 7);
+  const starts = state.ports.map(port => port.population.residents);
+  assert.ok(new Set(starts.map(({ Low, Common }) => `${Low}/${Common}`)).size > 1, 'the seven cities should not all start with the same population');
+  assert.deepEqual(repeat.ports.map(port => port.population.residents), starts, 'each city seed should reproduce the same starting population');
   for (const port of state.ports) {
+    const { Low, Common, Upper } = port.population.residents;
+    assert.ok(Low >= 5 && Low <= 7); assert.ok(Common >= 1 && Common <= 3); assert.equal(Upper, 0);
     assert.ok(port.population.residents.Low > 0);
     assert.ok(port.goodsStock.Grain > 0);
     assert.ok(port.goodsStock.Wool > 0);
@@ -104,3 +109,4 @@ test('simulation outcomes match when time advances in different step sizes', asy
   advance(split, 12.5); advance(split, 17.5); advance(split, 30);
   assert.deepEqual(whole.ports.map(port => ({ population: port.population.residents, stock: port.goodsStock, cycles: port.population.cycles })), split.ports.map(port => ({ population: port.population.residents, stock: port.goodsStock, cycles: port.population.cycles })));
 });
+

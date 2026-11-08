@@ -42,7 +42,12 @@ export function createGoodPriorities(first = 'resources') {
 
 function seededRandom(seed) {
   let value = seed >>> 0;
-  return () => { value = (value * 1664525 + 1013904223) >>> 0; return value / 4294967296; };
+  return () => {
+    let mixed = value += 0x6D2B79F5;
+    mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
+    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
+    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 export function createPopulation({ seed = 1, initial } = {}) {
@@ -170,3 +175,4 @@ export function populationProgress(population, tier) {
   if (grow) candidates.push({ action: 'growth', count: counters.growth, target: 4, blocker: !canHouse(tier) ? 'homes full' : null });
   return candidates;
 }
+
