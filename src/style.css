@@ -58,6 +58,9 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 /* Keep map overlays in one stacking context so the radial actions outrank the toolbar. */
 .map-shell{isolation:isolate}
 
+/* The goods badge is useful context on an unselected harbor, but obscures the radial actions when that harbor is open. */
+.harbor[aria-expanded="true"] .harbor-goods{visibility:hidden}
+
 /* The city view stays inside the map frame and uses a compact cartographic layer. */
 .town-view{position:absolute;z-index:12;inset:0;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;background:#e8ece1f5;border:1px solid #aab9a3;color:#314b40;box-shadow:0 10px 30px #30483b40}
 .town-view[hidden]{display:none}.town-view-header{display:flex;align-items:center;gap:18px;min-height:68px;padding:9px 16px;background:#f0f1e7;border-bottom:1px solid #cbd5c3}
