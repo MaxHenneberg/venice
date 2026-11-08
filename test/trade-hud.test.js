@@ -21,7 +21,7 @@ test('trade office HUD shows treasury, fleet state, and a live cargo summary',as
     await venice.click();await page.getByRole('button',{name:'Create Trade Route'}).click();
     await page.getByRole('button',{name:/Ragusa: produces Salt/}).click();await page.getByRole('button',{name:'Establish route'}).click();
     assert.equal(await page.locator('#fleet-count').innerText(),'1 at sea');
-    const voyage=page.locator('.fleet-voyage');assert.equal(await voyage.count(),1);assert.match(await voyage.innerText(),/Venezia → Ragusa/);assert.match(await voyage.locator('.fleet-voyage-status').getAttribute('aria-label'),/Glass cargo: 0 of 8 units, Loading/);
+    const voyage=page.locator('.fleet-voyage');assert.equal(await voyage.count(),1);assert.match(await voyage.innerText(),/Venezia → Ragusa/);assert.match(await voyage.locator('.fleet-voyage-status').getAttribute('aria-label'),/Glassware cargo: 0 of 8 units, Loading/);
     await page.waitForFunction(()=>document.querySelector('.fleet-voyage-status')?.textContent.includes('1/8'),null,{timeout:5000});
     const routePanel=page.getByRole('button',{name:'Voyages 1'});await routePanel.click();assert.equal(await page.getByRole('region',{name:'Active voyages'}).isVisible(),true);
     assert.deepEqual(errors,[]);
@@ -54,3 +54,4 @@ test('trade HUD controls remain inside the map and usable on mobile',async()=>{
     await assertHudFits();
   }finally{await browser.close();await server.close();}
 });
+
