@@ -26,7 +26,7 @@ test('non-harbor map clicks and taps cancel origin and quote without interfering
       await openWater();assert.equal(await page.locator('#route-popover').isHidden(),true);assert.equal(await page.locator('#treasury').innerText(),balance);assert.equal(await venice.getAttribute('aria-pressed'),'false');
       await activate(venice);await activate(ragusa);assert.equal(await page.locator('#route-popover').isVisible(),true);
       await activate(page.locator('#map-instruction'));assert.equal(await page.locator('#route-popover').isHidden(),true);assert.equal(await page.locator('#treasury').innerText(),balance);
-      await activate(venice);const labels=page.locator('#harbor-labels-toggle');await activate(labels);assert.equal(await venice.getAttribute('aria-pressed'),'true');assert.equal(await labels.getAttribute('aria-pressed'),'true');
+      await activate(venice);const menu=page.locator('#landscape-menu-toggle');if(await menu.isVisible())await activate(menu);const labels=page.locator('#harbor-labels-toggle');await activate(labels);assert.equal(await venice.getAttribute('aria-pressed'),'true');assert.equal(await labels.getAttribute('aria-pressed'),'true');
       await page.close();
     }
   }finally{await browser.close();await server.close();}
