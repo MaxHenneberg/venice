@@ -168,6 +168,7 @@ function positionTownInfo(index){
   townInfo.style.left=`${left}px`;townInfo.style.top=`${top}px`;
 }
 function renderNeedMeters(tier, residents, latest){
+  const colors={unhappy:{empty:'#edc9c2',filled:'#b94d3d'},happy:{empty:'#d4e1ce',filled:'#4f7a4a'},neutral:{empty:'#d8ddd5',filled:'#899287'}};
   const needs=document.createElement('div');needs.className='pop-needs';needs.setAttribute('role','group');needs.setAttribute('aria-label',`${tier} need point supply`);
   for(const need of NEEDS){
     const requested=residents*NEED_POINTS[tier][need],supplied=Math.min(requested,Math.max(0,Math.round(latest.served?.[need]??0)));
@@ -176,7 +177,7 @@ function renderNeedMeters(tier, residents, latest){
     const meter=document.createElement('span');meter.className='pop-need-meter';meter.setAttribute('role','img');meter.setAttribute('aria-label',`${need}: ${supplied} of ${requested} need points supplied`);
     for(let point=0;point<requested;point++){
       const midpoint=(point+0.5)/Math.max(1,requested),band=midpoint<UNHAPPY_NEED_THRESHOLD?'unhappy':midpoint<HAPPY_NEED_THRESHOLD?'happy':'neutral';
-      const segment=document.createElement('span');segment.className=`pop-need-segment is-${band}${point<supplied?' is-filled':''}`;segment.dataset.band=band;segment.setAttribute('aria-hidden','true');meter.append(segment);
+      const filled=point<supplied,segment=document.createElement('span');segment.className=`pop-need-segment is-${band}${filled?' is-filled':''}`;segment.dataset.band=band;segment.style.backgroundColor=colors[band][filled?'filled':'empty'];segment.setAttribute('aria-hidden','true');meter.append(segment);
     }
     const count=document.createElement('span');count.className='pop-need-count';count.textContent=`${supplied}/${requested} pts`;
     row.append(name,meter,count);needs.append(row);
