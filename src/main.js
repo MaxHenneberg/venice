@@ -146,17 +146,18 @@ function openTownInfo(index){radialMenu.hidden=true;const port=simulation.ports[
   renderPopulation(port, townInfo.querySelector('[data-population-tiers]'), townInfo.querySelector('[data-population-total]'), townInfo.querySelector('[data-population-cycle]'));
   townInfo.hidden=false;positionTownInfo(index);townInfo.querySelector('.town-info-close').focus();announcement.textContent=`${ports[index].name} town information opened.`;}
 function positionTownInfo(index){
-  const shell=mapShell.getBoundingClientRect(),button=portButtons[index].getBoundingClientRect(),toolbar=document.querySelector('.map-tools').getBoundingClientRect();
-  const margin=10,toolbarRect={left:toolbar.left-shell.left,right:toolbar.right-shell.left,top:toolbar.top-shell.top,bottom:toolbar.bottom-shell.top};
-  townInfo.style.left='0px';townInfo.style.top='0px';townInfo.style.maxWidth=`${Math.max(200,shell.width-margin*2)}px`;const desiredWidth=Math.min(townInfo.getBoundingClientRect().width,Math.max(200,shell.width-margin*2)),desiredHeight=Math.min(680,window.innerHeight*.76,Math.max(120,shell.height-margin*2));
-  const regions=[
-    {left:margin,right:shell.width-margin,top:margin,bottom:toolbarRect.top-margin},
-    {left:margin,right:shell.width-margin,top:toolbarRect.bottom+margin,bottom:shell.height-margin},
-    {left:margin,right:toolbarRect.left-margin,top:margin,bottom:shell.height-margin},
-    {left:toolbarRect.right+margin,right:shell.width-margin,top:margin,bottom:shell.height-margin}
-  ].map(region=>({...region,width:Math.max(0,region.right-region.left),height:Math.max(0,region.bottom-region.top)}));
+  const shell=mapShell.getBoundingClientRect(),viewport=mapViewport.getBoundingClientRect(),button=portButtons[index].getBoundingClientRect(),toolbar=document.querySelector('.map-tools').getBoundingClientRect();
+  const margin=10,visible={left:Math.max(shell.left,viewport.left,0)-shell.left+margin,right:Math.min(shell.right,viewport.right,window.innerWidth)-shell.left-margin,top:Math.max(shell.top,viewport.top,0)-shell.top+margin,bottom:Math.min(shell.bottom,viewport.bottom,window.innerHeight)-shell.top-margin};
+  townInfo.style.left='0px';townInfo.style.top='0px';townInfo.style.maxWidth=`${Math.max(0,visible.right-visible.left)}px`;const desiredWidth=Math.min(townInfo.getBoundingClientRect().width,Math.max(0,visible.right-visible.left)),desiredHeight=Math.min(680,window.innerHeight*.76,Math.max(0,visible.bottom-visible.top));
+  const toolbarRect={left:Math.max(toolbar.left,viewport.left)-shell.left,right:Math.min(toolbar.right,viewport.right)-shell.left,top:Math.max(toolbar.top,viewport.top)-shell.top,bottom:Math.min(toolbar.bottom,viewport.bottom)-shell.top},toolbarVisible=toolbarRect.right>visible.left&&toolbarRect.left<visible.right&&toolbarRect.bottom>visible.top&&toolbarRect.top<visible.bottom;
+  const regions=(toolbarVisible?[
+    {left:visible.left,right:visible.right,top:visible.top,bottom:toolbarRect.top-margin},
+    {left:visible.left,right:visible.right,top:toolbarRect.bottom+margin,bottom:visible.bottom},
+    {left:visible.left,right:toolbarRect.left-margin,top:visible.top,bottom:visible.bottom},
+    {left:toolbarRect.right+margin,right:visible.right,top:visible.top,bottom:visible.bottom}
+  ]:[{...visible}]).map(region=>({...region,width:Math.max(0,region.right-region.left),height:Math.max(0,region.bottom-region.top)}));
   const fitsWidth=regions.filter(region=>region.width>=desiredWidth&&region.height>=140),pool=fitsWidth.length?fitsWidth:regions.filter(region=>region.width>=140&&region.height>=140),region=pool.sort((a,b)=>Math.min(desiredWidth,b.width)*Math.min(desiredHeight,b.height)-Math.min(desiredWidth,a.width)*Math.min(desiredHeight,a.height))[0]??regions.sort((a,b)=>b.width*b.height-a.width*a.height)[0];
-  const width=Math.max(140,Math.min(desiredWidth,region.width)),height=Math.max(120,Math.min(desiredHeight,region.height));townInfo.style.width=`${width}px`;townInfo.style.maxHeight=`${height}px`;townInfo.style.maxWidth=`${width}px`;
+  const width=Math.min(desiredWidth,region.width),height=Math.min(desiredHeight,region.height);townInfo.style.width=`${width}px`;townInfo.style.maxHeight=`${height}px`;townInfo.style.maxWidth=`${width}px`;
   const anchorX=button.left-shell.left+button.width/2,anchorY=button.top-shell.top+button.height/2;
   const left=Math.max(region.left,Math.min(anchorX-width/2,region.right-width)),top=Math.max(region.top,Math.min(anchorY-height/2,region.bottom-height));
   townInfo.style.left=`${left}px`;townInfo.style.top=`${top}px`;
