@@ -3,11 +3,12 @@ export const BUILDING_TYPES = {
   glassworks: {
     label: 'Glassworks',
     kind: 'producer',
-    output: 'Glass',
+    output: 'Glassware',
+    recipe: { 'Silica Sand': 2, Salt: 1 },
     intervalSeconds: 5,
     placeable: true,
     icon: '🏺',
-    description: 'Produces one Glass every 5 seconds.'
+    description: 'Makes one Glassware from 2 Silica Sand and 1 Salt.'
   },
   spiceMarket: {
     label: 'Spice Market',
@@ -23,25 +24,37 @@ export const BUILDING_TYPES = {
     placeable: true, icon: '🧂', description: 'Evaporates one unit of Salt every 5 seconds.'
   },
   olivePress: {
-    label: 'Oil Press', kind: 'producer', output: 'Olive oil', intervalSeconds: 5,
-    placeable: true, icon: '🫒', description: 'Presses one unit of Olive oil every 5 seconds.'
+    label: 'Oil Press', kind: 'producer', output: 'Olive Oil', recipe: { Olives: 2 }, intervalSeconds: 5,
+    placeable: true, icon: '🫒', description: 'Presses Olive Oil from 2 Olives.'
   },
   wineCellar: {
-    label: 'Wine Cellar', kind: 'producer', output: 'Wine', intervalSeconds: 5,
-    placeable: true, icon: '🍷', description: 'Produces one unit of Wine every 5 seconds.'
+    label: 'Wine Cellar', kind: 'producer', output: 'Wine', recipe: { Grapes: 2 }, intervalSeconds: 5,
+    placeable: true, icon: '🍷', description: 'Makes Wine from 2 Grapes.'
   },
   silkAtelier: {
-    label: 'Silk Atelier', kind: 'producer', output: 'Silk', intervalSeconds: 5,
-    placeable: true, icon: '🧵', description: 'Weaves one unit of Silk every 5 seconds.'
+    label: 'Silk Atelier', kind: 'producer', output: 'Silk Garments', recipe: { 'Raw Silk': 2, 'Wool Cloth': 1 }, intervalSeconds: 5,
+    placeable: true, icon: '🧵', description: 'Weaves Silk Garments from Raw Silk and Wool Cloth.'
   },
   grainMill: {
     label: 'Grain Mill', kind: 'producer', output: 'Grain', intervalSeconds: 5,
     placeable: true, icon: '🌾', description: 'Mills one unit of Grain every 5 seconds.'
   },
   spiceHouse: {
-    label: 'Spice House', kind: 'producer', output: 'Spices', intervalSeconds: 5,
-    placeable: true, icon: '🌶️', description: 'Prepares one unit of Spices every 5 seconds.'
-  }
+    label: 'Spiced Wine Cellar', kind: 'producer', output: 'Spiced Wine', recipe: { Wine: 1, Spices: 1 }, intervalSeconds: 5,
+    placeable: true, icon: '🌶️', description: 'Blends one Spiced Wine from Wine and Spices every 5 seconds.'
+  },
+  breadBakery: { label: 'Bakery', kind: 'producer', output: 'Bread', recipe: { Grain: 2 }, intervalSeconds: 5, placeable: true, icon: '🍞', description: 'Bakes Bread from 2 Grain. Imports Grain as needed.' },
+  woolMill: { label: 'Wool Mill', kind: 'producer', output: 'Wool Cloth', recipe: { Wool: 2 }, intervalSeconds: 5, placeable: true, icon: '🧶', description: 'Weaves Wool Cloth from 2 Wool.' },
+  furnitureWorkshop: { label: 'Furniture Workshop', kind: 'producer', output: 'Furniture', recipe: { Timber: 2 }, intervalSeconds: 5, placeable: true, icon: '🪑', description: 'Makes Furniture from 2 Timber.' },
+  glassStudio: { label: 'Glass Studio', kind: 'producer', output: 'Glassware', recipe: { 'Silica Sand': 2, Salt: 1 }, intervalSeconds: 5, placeable: true, icon: '🏺', description: 'Makes Glassware from 2 Silica Sand and 1 Salt.' },
+  silkTailor: { label: 'Silk Tailor', kind: 'producer', output: 'Silk Garments', recipe: { 'Raw Silk': 2, 'Wool Cloth': 1 }, intervalSeconds: 5, placeable: true, icon: '🪡', description: 'Sews Silk Garments from Raw Silk and Wool Cloth.' },
+  oliveGrove: { label: 'Olive Grove', kind: 'producer', output: 'Olives', intervalSeconds: 5, placeable: true, icon: '🫒', description: 'Harvests one Olives every 5 seconds.' },
+  grapeVineyard: { label: 'Grape Vineyard', kind: 'producer', output: 'Grapes', intervalSeconds: 5, placeable: true, icon: '🍇', description: 'Harvests one Grapes every 5 seconds.' },
+  woolFarm: { label: 'Sheep Pasture', kind: 'producer', output: 'Wool', intervalSeconds: 5, placeable: true, icon: '🐑', description: 'Produces one Wool every 5 seconds.' },
+  timberYard: { label: 'Timber Yard', kind: 'producer', output: 'Timber', intervalSeconds: 5, placeable: true, icon: '🪵', description: 'Cuts one Timber every 5 seconds.' },
+  sandQuarry: { label: 'Sand Quarry', kind: 'producer', output: 'Silica Sand', intervalSeconds: 5, placeable: true, icon: '⛏️', description: 'Quarries one Silica Sand every 5 seconds.' },
+  silkMarket: { label: 'Silk Exchange', kind: 'producer', output: 'Raw Silk', intervalSeconds: 5, placeable: true, icon: '🧵', description: 'Sources one Raw Silk every 5 seconds.' },
+  fishingPier: { label: 'Fishing Pier', kind: 'producer', output: 'Fish', intervalSeconds: 5, placeable: true, icon: '🐟', description: 'Brings in one Fish every 5 seconds.' }
 };
 
 // Axial plot rows follow the city islands and Giudecca; omit cells crossed by
@@ -61,7 +74,7 @@ export const TOWN_BLUEPRINTS = {
   venezia: {
     portIndex: 0,
     name: 'Venezia',
-    buildableTypes: ['glassworks', 'saltworks', 'olivePress', 'wineCellar', 'silkAtelier', 'grainMill', 'spiceHouse'],
+    buildableTypes: ['glassworks', 'saltworks', 'olivePress', 'wineCellar', 'silkAtelier', 'grainMill', 'spiceHouse', 'breadBakery', 'woolMill', 'furnitureWorkshop', 'silkTailor', 'oliveGrove', 'grapeVineyard', 'woolFarm', 'timberYard', 'sandQuarry', 'silkMarket', 'fishingPier'],
     buildableCells: landCells,
     buildings: [
       { id: 'venice-glassworks-1', type: 'glassworks', cell: '2-3' },
@@ -127,7 +140,15 @@ export function advanceTownProduction(town, port, seconds, stockLimit = 40) {
     while (building.clock + 1e-9 >= definition.intervalSeconds) {
       building.clock -= definition.intervalSeconds;
       const current = output === port.good ? port.stock : (port.goodsStock?.[output] ?? 0);
-      if (current < stockLimit) {
+      const recipe = definition.recipe;
+      const hasInputs = !recipe || Object.entries(recipe).every(([input, amount]) => (port.goodsStock?.[input] ?? (input === port.good ? port.stock : 0)) >= amount);
+      if (current < stockLimit && hasInputs) {
+        if (recipe) for (const [input, amount] of Object.entries(recipe)) {
+          const available = port.goodsStock?.[input] ?? (input === port.good ? port.stock : 0);
+          if (input === port.good) port.stock = Math.max(0, available - amount);
+          if (port.goodsStock) port.goodsStock[input] = Math.max(0, available - amount);
+          recordTownConsumption(town, input);
+        }
         if (output === port.good) {
           port.stock++;
           if (port.goodsStock) port.goodsStock[output] = port.stock;
@@ -140,8 +161,11 @@ export function advanceTownProduction(town, port, seconds, stockLimit = 40) {
 }
 
 export function recordTownConsumption(town, good) {
-  const consumer = town.buildings.find(building => BUILDING_TYPES[building.type]?.input === good);
-  if (consumer) consumer.consumed++;
+  for (const building of town.buildings) {
+    const definition = BUILDING_TYPES[building.type];
+    const amount = definition?.input === good ? 1 : definition?.recipe?.[good] ?? 0;
+    if (amount) building.consumed += amount;
+  }
 }
 
 export function stockForGood(port, good = port.good) {

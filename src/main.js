@@ -6,6 +6,7 @@ import { createSimulation, addRoute, removeRoute, advance, quoteRoute, placeProd
 import { seaPath, pointAlong } from './sea-routes.js';
 import { BUILDING_TYPES, getTownGoods, stockForGood } from './town-economy.js';
 import { drawVeniceBoard } from './town-map.js';
+import { POPULATION_TIERS, NEEDS, NEED_POINTS, GOODS, UNHAPPY_NEED_THRESHOLD, HAPPY_NEED_THRESHOLD, populationTotal, populationProgress } from './population.js';
 
 const mapViewport = document.querySelector('.map-viewport');
 const mapWorld = document.querySelector('#map-zoom-spacer');
@@ -140,32 +141,72 @@ function openTownInfo(index){radialMenu.hidden=true;const port=simulation.ports[
   const productionInterval=producers.length?BUILDING_TYPES[producers[0].type].intervalSeconds:PRODUCTION_SECONDS;
   townInfo.querySelector('[data-production-rate]').textContent=`1 unit / ${productionInterval}s · ${productionRate.toFixed(1)} units per minute${port.town?` from ${producers.length} producer${producers.length===1?'':'s'}`:` (current cadence)`}`;
   townInfo.querySelector('[data-stock]').textContent=`${port.stock} units available`;
-  townInfo.querySelector('[data-consumed]').textContent=`${need.icon} ${port.needs}`;const consumeSeconds=port.consumptionSeconds?.get(port.needs)??need.seconds;townInfo.querySelector('[data-consumption-rate]').textContent=`1 unit / ${consumeSeconds.toFixed(1)}s while compatible cargo unloads · ${formatRate(consumeSeconds)} per ship per minute`;
-  townInfo.querySelector('[data-consumed-count]').textContent=`${port.consumed} units consumed from deliveries`;
+  townInfo.querySelector('[data-consumed]').textContent=`${need.icon} ${port.needs}`;townInfo.querySelector('[data-consumption-rate]').textContent='Goods stay in city stores until the next 30-second needs cycle.';
+  townInfo.querySelector('[data-consumed-count]').textContent=`${port.consumed} goods used by citizens`;
+  renderPopulation(port, townInfo.querySelector('[data-population-tiers]'), townInfo.querySelector('[data-population-total]'), townInfo.querySelector('[data-population-cycle]'));
   townInfo.hidden=false;positionTownInfo(index);townInfo.querySelector('.town-info-close').focus();announcement.textContent=`${ports[index].name} town information opened.`;}
-function formatRate(seconds){return `${(60/seconds).toFixed(1)} units`;}
 function positionTownInfo(index){
-  const shell=mapShell.getBoundingClientRect(),button=portButtons[index].getBoundingClientRect(),toolbar=document.querySelector('.map-tools').getBoundingClientRect();
-  townInfo.style.left='0px';townInfo.style.top='0px';const box=townInfo.getBoundingClientRect(),margin=10;
-  const clamp=(value,size)=>Math.max(margin,Math.min(value,size-margin));
-  const toolbarRect={left:toolbar.left-shell.left,right:toolbar.right-shell.left,top:toolbar.top-shell.top,bottom:toolbar.bottom-shell.top};
-  const overlapsToolbar=(left,top)=>left+box.width>toolbarRect.left&&left<toolbarRect.right&&top+box.height>toolbarRect.top&&top<toolbarRect.bottom;
-  const anchoredLeft=button.left-shell.left+button.width/2-box.width/2,anchoredTop=button.top-shell.top+button.height+12;
-  let left=clamp(anchoredLeft,shell.width-box.width),top=clamp(anchoredTop,shell.height-box.height);
-  if(overlapsToolbar(left,top)){
-    const candidates=[
-      [left,toolbarRect.bottom+margin],
-      [left,toolbarRect.top-box.height-margin],
-      [toolbarRect.left-box.width-margin,anchoredTop],
-      [toolbarRect.right+margin,anchoredTop]
-    ].map(([x,y])=>[clamp(x,shell.width-box.width),clamp(y,shell.height-box.height)]);
-    const clear=candidates.find(([x,y])=>!overlapsToolbar(x,y));
-    if(clear)[left,top]=clear;
-  }
+  const shell=mapShell.getBoundingClientRect(),viewport=mapViewport.getBoundingClientRect(),button=portButtons[index].getBoundingClientRect(),toolbar=document.querySelector('.map-tools').getBoundingClientRect();
+  const margin=10,layoutWidth=document.documentElement.clientWidth||window.innerWidth,layoutHeight=document.documentElement.clientHeight||window.innerHeight,visible={left:Math.max(shell.left,viewport.left,0)-shell.left+margin,right:Math.min(shell.right,viewport.right,layoutWidth,window.innerWidth)-shell.left-margin,top:Math.max(shell.top,viewport.top,0)-shell.top+margin,bottom:Math.min(shell.bottom,viewport.bottom,layoutHeight,window.innerHeight)-shell.top-margin};
+  townInfo.style.left='0px';townInfo.style.top='0px';townInfo.style.maxWidth=`${Math.max(0,visible.right-visible.left)}px`;const desiredWidth=Math.min(townInfo.getBoundingClientRect().width,Math.max(0,visible.right-visible.left),Math.max(0,layoutWidth-margin*2)),desiredHeight=Math.min(680,window.innerHeight*.76,Math.max(0,visible.bottom-visible.top),Math.max(0,layoutHeight-margin*2));
+  const toolbarRect={left:Math.max(toolbar.left,viewport.left)-shell.left,right:Math.min(toolbar.right,viewport.right)-shell.left,top:Math.max(toolbar.top,viewport.top)-shell.top,bottom:Math.min(toolbar.bottom,viewport.bottom)-shell.top},toolbarVisible=toolbarRect.right>visible.left&&toolbarRect.left<visible.right&&toolbarRect.bottom>visible.top&&toolbarRect.top<visible.bottom;
+  const regions=(toolbarVisible?[
+    {left:visible.left,right:visible.right,top:visible.top,bottom:toolbarRect.top-margin},
+    {left:visible.left,right:visible.right,top:toolbarRect.bottom+margin,bottom:visible.bottom},
+    {left:visible.left,right:toolbarRect.left-margin,top:visible.top,bottom:visible.bottom},
+    {left:toolbarRect.right+margin,right:visible.right,top:visible.top,bottom:visible.bottom}
+  ]:[{...visible}]).map(region=>({...region,width:Math.max(0,region.right-region.left),height:Math.max(0,region.bottom-region.top)}));
+  const fitsWidth=regions.filter(region=>region.width>=desiredWidth&&region.height>=140),pool=fitsWidth.length?fitsWidth:regions.filter(region=>region.width>=140&&region.height>=140),region=pool.sort((a,b)=>Math.min(desiredWidth,b.width)*Math.min(desiredHeight,b.height)-Math.min(desiredWidth,a.width)*Math.min(desiredHeight,a.height))[0]??regions.sort((a,b)=>b.width*b.height-a.width*a.height)[0];
+  const width=Math.min(desiredWidth,region.width),height=Math.min(desiredHeight,region.height);townInfo.style.width=`${width}px`;townInfo.style.maxHeight=`${height}px`;townInfo.style.maxWidth=`${width}px`;
+  const anchorX=button.left-shell.left+button.width/2,anchorY=button.top-shell.top+button.height/2;
+  const left=Math.max(region.left,Math.min(anchorX-width/2,region.right-width)),top=Math.max(region.top,Math.min(anchorY-height/2,region.bottom-height));
   townInfo.style.left=`${left}px`;townInfo.style.top=`${top}px`;
 }
+function renderNeedMeters(port, tier, latest){
+  const needs=document.createElement('div');needs.className='pop-needs';needs.setAttribute('role','group');needs.setAttribute('aria-label',`${tier} need point supply`);
+  for(const need of NEEDS){
+    const residents=port.population.residents[tier],perHousehold=NEED_POINTS[tier][need],requested=residents*perHousehold,supplied=Math.min(requested,Math.max(0,latest.served?.[need]??0)),average=residents?supplied/residents:0,ratio=perHousehold?Math.min(1,average/perHousehold):0,pct=Math.round(ratio*100);
+    const row=document.createElement('div');row.className='pop-need';row.dataset.need=need;
+    const needIcon={Food:'🍲',Comfort:'🧺',Entertainment:'🎭'}[need],name=document.createElement('span');name.className='pop-need-name';name.textContent=`${needIcon} ${need}`;
+    const meter=document.createElement('span');meter.className='pop-need-meter';meter.setAttribute('role','img');meter.setAttribute('aria-label',`${need}: average ${average.toFixed(1)} of ${perHousehold} points per household supplied (${pct}%)`);meter.dataset.average=average.toFixed(2);meter.dataset.max=String(perHousehold);meter.style.background='linear-gradient(90deg,#edc9c2 0%,#edc9c2 40%,#d4e1ce 40%,#d4e1ce 60%,#d8ddd5 60%,#d8ddd5 100%)';
+    const suppliedBar=document.createElement('span');suppliedBar.className='pop-need-fill';suppliedBar.style.width=`${pct}%`;suppliedBar.dataset.fulfillment=String(ratio);if(ratio>0){const unhappy=Math.min(100,UNHAPPY_NEED_THRESHOLD/ratio*100),happy=Math.min(100,HAPPY_NEED_THRESHOLD/ratio*100);suppliedBar.style.background=`linear-gradient(90deg,#b94d3d 0%,#b94d3d ${unhappy}%,#4f7a4a ${unhappy}%,#4f7a4a ${happy}%,#899287 ${happy}%,#899287 100%)`;}meter.append(suppliedBar);
+    for(let point=0;point<perHousehold;point++){
+      const segment=document.createElement('span');segment.className='pop-need-segment';segment.dataset.point=String(point+1);segment.setAttribute('aria-hidden','true');meter.append(segment);
+    }
+    const count=document.createElement('span');count.className='pop-need-count';count.textContent=`${average.toFixed(1)}/${perHousehold} pts per home`;
+    const allowed=Object.entries(GOODS).filter(([,info])=>info.needs[need]?.includes(tier)).map(([good])=>good),goods=document.createElement('span');goods.className='pop-need-goods';goods.setAttribute('aria-label',`${need} goods for ${tier}`);
+    for(const good of allowed){const amount=port.goodsStock?.[good]??0,option=document.createElement('span');option.className=`pop-good-option${amount>0?' is-stocked':''}`;option.dataset.good=good;option.title=amount>0?`${good}: ${amount} in city stores; worth ${GOODS[good].points} points per unit`:`${good}: none in city stores; worth ${GOODS[good].points} points per unit`;option.textContent=`${GOOD_INFO[good]?.icon??'📦'} ${good} +${GOODS[good].points} pts · ${amount} stored`;goods.append(option);}
+    row.append(name,meter,count,goods);needs.append(row);
+  }
+  return needs;
+}
+function renderPopulation(port, root, totalLabel, cycleLabel){
+  if(!port?.population||!root)return;
+  const population=port.population; if(totalLabel)totalLabel.textContent=`${populationTotal(population)} residents · ${POPULATION_TIERS.reduce((sum,tier)=>sum+population.housing[tier],0)} homes`;
+  root.replaceChildren();
+  for(const tier of POPULATION_TIERS){
+    const latest=population.lastCycle[tier],progress=populationProgress(population,tier);
+    const row=document.createElement('div');row.className='pop-tier';row.dataset.tier=tier;
+    const label=document.createElement('div');label.className='pop-tier-label';
+    const name=document.createElement('strong');name.textContent=tier;
+    const residents=document.createElement('span');residents.textContent=`${population.residents[tier]} / ${population.housing[tier]} homes`;
+    label.append(name,residents);
+    const meter=document.createElement('div');meter.className='pop-meter';meter.setAttribute('role','img');meter.setAttribute('aria-label',latest.happiness===null?`${tier}: no households`:`${tier} household happiness ${Math.round(latest.happiness)} percent`);
+    const fill=document.createElement('span');fill.style.width=`${Math.max(0,Math.min(100,latest.happiness??0))}%`;meter.append(fill);
+    const detail=document.createElement('div');detail.className='pop-tier-detail';detail.dataset.tierDetail=tier;
+    if(latest.happiness===null)detail.textContent=population.residents[tier]===0?'No households yet':'Needs update after first 30-second cycle';
+    else detail.textContent=`${Math.round(latest.happiness)}% happy`;
+    detail.append(renderNeedMeters(port,tier,latest));
+    if(latest.happiness!==null){
+      const goal=progress.filter(item=>item.count>0||item.blocker).map(item=>`${item.action} ${item.count}/${item.target}${item.blocker?` · ${item.blocker}`:''}`).join(' · ');
+      if(goal){const status=document.createElement('span');status.className='pop-tier-goal';status.textContent=goal;detail.append(status);}
+    }
+    const title=document.createElement('div');title.className='pop-tier-card';title.append(label,meter,detail);row.replaceChildren(title);root.append(row);
+  }
+  if(cycleLabel)cycleLabel.textContent=`Bars show average points per household; each stroke is 1 point. Goods show points per unit and current city stock. Needs refresh every 30 seconds · cycle ${population.cycles}`;
+}
 function renderTownChoices(town){const picker=document.querySelector('#production-choice');picker.replaceChildren();for(const type of town.buildableTypes){const def=BUILDING_TYPES[type];if(!def?.placeable||!def.output)continue;const option=document.createElement('option');option.value=type;option.textContent=def.icon+' '+def.output+' · '+def.label;picker.append(option);}picker.value=selectedBuilding;updateProductionChoice();picker.onchange=()=>{selectedBuilding=picker.value;updateProductionChoice();townViewFeedback.textContent=BUILDING_TYPES[selectedBuilding].label+' selected. Choose an empty city plot.';};}
-function updateProductionChoice(){const def=BUILDING_TYPES[selectedBuilding];if(!def)return;document.querySelector('#production-description').textContent=def.description+' Goods enter Venice’s trade stores as they are made.';}
+function updateProductionChoice(){const def=BUILDING_TYPES[selectedBuilding];if(!def)return;const recipe=def.recipe?` Recipe: ${Object.entries(def.recipe).map(([good,amount])=>`${amount} ${good}`).join(' + ')}.`:'';document.querySelector('#production-description').textContent=def.description+recipe+' Goods enter the city stores when ready.';}
 function openTownView(index){const port=simulation.ports[index];if(!port.town)return;dismissTownOverlays();townViewPort=index;selectedBuilding=port.town.buildableTypes.values().next().value??'glassworks';renderTownChoices(port.town);townView.hidden=false;renderTownBoard();updateTownView({renderBuildings:true});townViewClose.focus();announcement.textContent=ports[index].name+' town opened. Choose what to produce, then select an empty city plot.';}
 function closeTownView({restoreFocus=false}={}){const previous=townViewPort;townView.hidden=true;townViewPort=null;if(restoreFocus&&previous!==null)portButtons[previous].focus();announcement.textContent='Returned to the Mediterranean map.';}
 function renderTownBoard(){if(townViewPort===null)return;const town=simulation.ports[townViewPort].town;drawVeniceBoard(townBoard,town,cell=>{
@@ -176,12 +217,13 @@ function renderTownBoard(){if(townViewPort===null)return;const town=simulation.p
 function updateTownView({renderBuildings=false}={}){if(townViewPort===null)return;const port=simulation.ports[townViewPort],town=port.town,goods=getTownGoods(town),consumer=town.buildings.find(b=>BUILDING_TYPES[b.type]?.input===port.needs),consumeSeconds=consumer?BUILDING_TYPES[consumer.type].consumptionSecondsPerUnit:GOOD_INFO[port.needs]?.seconds;
   document.querySelector('#town-view-output').textContent=[...goods.produced].map(([good,rate])=>(GOOD_INFO[good]?.icon??'')+' '+good+' · '+(rate*60).toFixed(0)+'/min').join('  ·  ')||'No production';
   document.querySelector('#town-view-demand').textContent=`${GOOD_INFO[port.needs]?.icon??''} ${port.needs} demand`;
-  document.querySelector('#town-view-stock').textContent='Stores '+[...goods.produced.keys()].map(good=>(GOOD_INFO[good]?.icon??'')+stockForGood(port,good)).join(' · ')+' · '+port.consumed+' received';
+  document.querySelector('#town-view-stock').textContent='City stores '+Object.entries(port.goodsStock).filter(([,amount])=>amount>0).map(([good,amount])=>(GOOD_INFO[good]?.icon??'📦')+amount+' '+good).join(' · ')+' · '+port.consumed+' used';
+    renderPopulation(port, townView.querySelector('[data-town-population]'), null, townView.querySelector('[data-town-population-cycle]'));
   const list=document.querySelector('#town-building-list');
   if(renderBuildings)list.replaceChildren();
   for(const building of town.buildings){const def=BUILDING_TYPES[building.type];let li=list.querySelector(`[data-building-id="${building.id}"]`);
     if(!li&&renderBuildings){li=document.createElement('li');li.dataset.buildingId=building.id;list.append(li);}
-    if(li)li.textContent=def.kind==='producer'?def.icon+' '+def.label+' · '+building.produced+' '+(building.output??def.output)+' · '+(60/def.intervalSeconds).toFixed(0)+'/min':def.icon+' '+def.label+' · '+building.consumed+' received · 1/'+consumeSeconds.toFixed(1)+'s while unloading';}
+    if(li){const recipe=def.recipe?` · uses ${Object.entries(def.recipe).map(([good,amount])=>`${amount} ${good}`).join(' + ')}`:'';li.textContent=def.kind==='producer'?def.icon+' '+def.label+' · '+building.produced+' '+(building.output??def.output)+' · '+(60/def.intervalSeconds).toFixed(0)+'/min'+recipe:def.icon+' '+def.label+' · '+building.consumed+' used · needs imports';}}
 }
 function repositionTownOverlays(){if(activeTown===null)return;if(!radialMenu.hidden)placeRadial(activeTown);if(!townInfo.hidden)positionTownInfo(activeTown);}
 window.addEventListener('resize',repositionTownOverlays);mapViewport.addEventListener('scroll',()=>{if(activeTown!==null&&!townInfo.hidden)positionTownInfo(activeTown);},{passive:true});
@@ -285,7 +327,7 @@ function updateState(){
   renderFleetSummary();
   updateTownView();
   const placed=[];
-  if(activeTown!==null&&!townInfo.hidden){const town=simulation.ports[activeTown];townInfo.querySelector('[data-stock]').textContent=`${town.stock} units available`;townInfo.querySelector('[data-consumed-count]').textContent=`${town.consumed} units consumed from deliveries`;}
+  if(activeTown!==null&&!townInfo.hidden){const town=simulation.ports[activeTown];townInfo.querySelector('[data-stock]').textContent=`${town.stock} units available`;townInfo.querySelector('[data-consumed-count]').textContent=`${town.consumed} goods used by citizens`;renderPopulation(town,townInfo.querySelector('[data-population-tiers]'),townInfo.querySelector('[data-population-total]'),townInfo.querySelector('[data-population-cycle]'));}
   for(const route of simulation.routes){const status=document.querySelector(`.route-row[data-id="${route.id}"] .route-state`);if(status && status.textContent!==routeText(route))status.textContent=routeText(route);const ship=shipLayer.querySelector(`[data-id="${route.id}"]`);if(ship){const p=pointAlong(paths.get(route.id),route.progress);ship.style.left=`${p.x/12}%`;ship.style.top=`${p.y/5.2}%`;const offset=placed.filter(other=>Math.hypot(other.x-p.x,other.y-p.y)<25).length;placed.push(p);ship.style.transform=`translate(-50%, ${10+offset*22}px)`;ship.textContent=`⛵ ${GOOD_INFO[route.good].icon} ${route.cargo}/${CAPACITY} · ${route.status}`;}}
 }
 updatePorts();renderRoutes();
@@ -337,4 +379,5 @@ class MapScene extends Phaser.Scene {
   }
 }
 new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1200,height:520,backgroundColor:'#a9c9c4',input:{touch:{capture:false}},scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:MapScene,render:{antialias:true}});
+
 

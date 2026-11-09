@@ -40,8 +40,9 @@
           <button class="town-info-close" type="button" aria-label="Close town information">×</button>
           <p class="town-info-kicker">HARBOR LEDGER</p><h2 id="town-info-title" data-town-name></h2>
           <div class="town-stat"><span class="town-stat-icon" aria-hidden="true">OUT</span><div><strong>Produces <span data-produced></span></strong><span class="town-stat-detail" data-production-rate></span><span class="town-stat-detail" data-stock></span></div></div>
-          <div class="town-stat"><span class="town-stat-icon" aria-hidden="true">IN</span><div><strong>Consumes <span data-consumed></span></strong><span class="town-stat-detail" data-consumption-rate></span><span class="town-stat-detail" data-consumed-count></span></div></div>
-          <p class="town-stat-note">Consumption occurs only when a compatible cargo unloads here.</p>
+          <div class="town-stat"><span class="town-stat-icon" aria-hidden="true">IN</span><div><strong>City need <span data-consumed></span></strong><span class="town-stat-detail" data-consumption-rate></span><span class="town-stat-detail" data-consumed-count></span></div></div>
+          <section class="population-ledger" aria-labelledby="population-title"><div class="population-heading"><span aria-hidden="true">👥</span><div><strong id="population-title">City population</strong><span class="town-stat-detail" data-population-total></span></div></div><div data-population-tiers></div><p class="population-cycle-note" data-population-cycle></p></section>
+          <p class="town-stat-note">Citizens use goods from city stores every 30 game seconds. Trade cargo is stored on arrival.</p>
         </section>
         <section id="town-view" class="town-view" role="dialog" aria-modal="true" aria-labelledby="town-view-title" hidden>
           <header class="town-view-header">
@@ -54,6 +55,7 @@
           <div class="town-view-body">
             <div class="town-board-wrap"><svg id="town-board" class="town-board" aria-label="Venice building plots"></svg></div>
             <aside class="town-build-panel" aria-label="Building and town economy">
+              <section class="population-mini" aria-label="Population and household needs"><p class="town-panel-kicker">YOUR CITIZENS</p><div data-town-population></div><p class="population-cycle-note" data-town-population-cycle></p></section>
               <p class="town-panel-kicker">CHOOSE A WORKSHOP</p>
               <label class="production-label" for="production-choice">Produce</label>
               <select id="production-choice" class="production-choice" aria-label="Choose what Venice will produce"></select>
@@ -68,5 +70,6 @@
     </main>
   </div><script type="module" src="/src/main.js"></script>
 </body></html>
+
 
 
