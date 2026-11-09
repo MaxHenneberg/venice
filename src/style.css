@@ -42,7 +42,7 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 .radial-action#town-info-action{left:12px;top:10px}.radial-action#create-route-action{right:12px;top:10px}.radial-action:not(#town-info-action):not(#create-route-action){left:50%;bottom:10px;transform:translateX(-50%)}
 .radial-action:hover,.radial-action:focus-visible{border-color:#a65b3f;background:#fff9e9;color:#804a35;outline:2px solid #a65b3f;outline-offset:2px}
 .radial-glyph{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#e6eadc;color:#a65b3f;font-size:17px;line-height:1}
-.town-info-popover{position:absolute;z-index:10;width:min(560px,calc(100vw - 28px));max-height:min(76dvh,680px);overflow:auto;padding:18px 18px 15px;border:1px solid #a9bba5;background:#f8f8f0;box-shadow:0 8px 26px #30483b45;color:#365448}
+.town-info-popover{position:absolute;z-index:10;width:min(560px,calc(100vw - 28px));max-height:min(76dvh,680px);overflow:auto;padding:18px 18px 15px;border:1px solid #a9bba5;background:#f8f8f0;box-shadow:0 8px 26px #30483b45;color:#365448;container-type:inline-size}
 .town-info-popover[hidden]{display:none}.town-info-popover h2{padding-right:28px;margin:2px 0 13px;font:400 25px/1.1 "DM Serif Display",Georgia,serif}
 .town-info-kicker{font-size:9px;font-weight:700;letter-spacing:.18em;color:#a66c50}
 .town-info-close{position:absolute;right:9px;top:8px;width:32px;height:32px;border:1px solid #cbd5c3;background:#f1f1e7;color:#546e60;font:24px/1 "DM Sans",sans-serif;cursor:pointer}
@@ -142,5 +142,6 @@ main{padding:12px}.map-shell{position:relative;padding:0;overflow:visible}.map-v
 .pop-good-option{display:inline-flex;align-items:center;min-height:17px;padding:1px 4px;border:1px solid #748577;border-radius:3px;background:#314b3f;color:#d0d7c8;font-size:8px;line-height:1.2;white-space:nowrap}.pop-good-option.is-stocked{border-color:#b6c884;background:#526a47;color:#fff3d6}
 .pop-tier-goal{display:block;margin-top:4px;color:#e2d0a6}
 @media(max-width:900px){.population-ledger [data-population-tiers],.population-mini [data-town-population]{grid-template-columns:1fr}.pop-tier-card{height:auto}}
+@container (max-width:460px){.population-ledger [data-population-tiers]{grid-template-columns:1fr}.population-ledger .pop-tier-card{height:auto}}
 @media(max-width:700px){.town-info-popover{width:calc(100vw - 20px);max-height:80dvh;padding:12px}.town-info-popover h2{font-size:21px;margin-bottom:8px}.population-ledger{padding:8px}.population-ledger [data-population-tiers]{grid-template-columns:1fr}.pop-need{grid-template-columns:minmax(84px,auto) minmax(45px,1fr);gap:4px}.pop-need-count{grid-column:2;justify-self:end}.pop-need-goods{margin-left:0}.population-mini [data-town-population]{grid-template-columns:1fr}.population-mini .pop-tier-card{padding:7px}}
 
