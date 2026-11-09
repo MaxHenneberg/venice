@@ -147,20 +147,18 @@ function openTownInfo(index){radialMenu.hidden=true;const port=simulation.ports[
   townInfo.hidden=false;positionTownInfo(index);townInfo.querySelector('.town-info-close').focus();announcement.textContent=`${ports[index].name} town information opened.`;}
 function positionTownInfo(index){
   const shell=mapShell.getBoundingClientRect(),button=portButtons[index].getBoundingClientRect(),toolbar=document.querySelector('.map-tools').getBoundingClientRect();
-  const margin=10;townInfo.style.maxHeight=`${Math.max(120,Math.min(680,window.innerHeight*.76,shell.height-margin*2))}px`;townInfo.style.maxWidth=`${Math.max(200,shell.width-margin*2)}px`;townInfo.style.left='0px';townInfo.style.top='0px';const box=townInfo.getBoundingClientRect();
-  const clamp=(value,size)=>Math.max(margin,Math.min(value,Math.max(margin,size-box.width-margin)));
-  const clampY=value=>Math.max(margin,Math.min(value,Math.max(margin,shell.height-box.height-margin)));
-  const toolbarRect={left:toolbar.left-shell.left,right:toolbar.right-shell.left,top:toolbar.top-shell.top,bottom:toolbar.bottom-shell.top};
-  const overlapsToolbar=(left,top)=>left+box.width>toolbarRect.left&&left<toolbarRect.right&&top+box.height>toolbarRect.top&&top<toolbarRect.bottom;
+  const margin=10,toolbarRect={left:toolbar.left-shell.left,right:toolbar.right-shell.left,top:toolbar.top-shell.top,bottom:toolbar.bottom-shell.top};
+  townInfo.style.left='0px';townInfo.style.top='0px';townInfo.style.maxWidth=`${Math.max(200,shell.width-margin*2)}px`;const desiredWidth=Math.min(townInfo.getBoundingClientRect().width,Math.max(200,shell.width-margin*2)),desiredHeight=Math.min(680,window.innerHeight*.76,Math.max(120,shell.height-margin*2));
+  const regions=[
+    {left:margin,right:shell.width-margin,top:margin,bottom:toolbarRect.top-margin},
+    {left:margin,right:shell.width-margin,top:toolbarRect.bottom+margin,bottom:shell.height-margin},
+    {left:margin,right:toolbarRect.left-margin,top:margin,bottom:shell.height-margin},
+    {left:toolbarRect.right+margin,right:shell.width-margin,top:margin,bottom:shell.height-margin}
+  ].map(region=>({...region,width:Math.max(0,region.right-region.left),height:Math.max(0,region.bottom-region.top)}));
+  const fitsWidth=regions.filter(region=>region.width>=desiredWidth&&region.height>=140),pool=fitsWidth.length?fitsWidth:regions.filter(region=>region.width>=140&&region.height>=140),region=pool.sort((a,b)=>Math.min(desiredWidth,b.width)*Math.min(desiredHeight,b.height)-Math.min(desiredWidth,a.width)*Math.min(desiredHeight,a.height))[0]??regions.sort((a,b)=>b.width*b.height-a.width*a.height)[0];
+  const width=Math.max(140,Math.min(desiredWidth,region.width)),height=Math.max(120,Math.min(desiredHeight,region.height));townInfo.style.width=`${width}px`;townInfo.style.maxHeight=`${height}px`;townInfo.style.maxWidth=`${width}px`;
   const anchorX=button.left-shell.left+button.width/2,anchorY=button.top-shell.top+button.height/2;
-  const rawCandidates=[[anchorX-box.width/2,anchorY+button.height/2+12],[anchorX-box.width/2,anchorY-box.height-button.height/2-12],[anchorX+button.width/2+12,anchorY-box.height/2],[anchorX-box.width/2-button.width/2-12,anchorY-box.height/2],[margin,margin],[shell.width-box.width-margin,margin],[margin,shell.height-box.height-margin],[shell.width-box.width-margin,shell.height-box.height-margin],[toolbarRect.left-box.width-margin,toolbarRect.top],[toolbarRect.left-box.width-margin,toolbarRect.bottom+margin],[toolbarRect.right+margin,toolbarRect.top],[toolbarRect.right+margin,toolbarRect.bottom+margin]];
-  const candidates=rawCandidates.map(([x,y])=>[clamp(x,shell.width),clampY(y)]);
-  const distance=([x,y])=>Math.hypot(x+box.width/2-anchorX,y+box.height/2-anchorY);
-  const clear=candidates.filter(([x,y])=>!overlapsToolbar(x,y)).sort((a,b)=>distance(a)-distance(b))[0];
-  const [left,top]=clear??candidates.sort((a,b)=>{
-    const area=([x,y])=>Math.max(0,Math.min(x+box.width,toolbarRect.right)-Math.max(x,toolbarRect.left))*Math.max(0,Math.min(y+box.height,toolbarRect.bottom)-Math.max(y,toolbarRect.top));
-    return area(a)-area(b)||distance(a)-distance(b);
-  })[0];
+  const left=Math.max(region.left,Math.min(anchorX-width/2,region.right-width)),top=Math.max(region.top,Math.min(anchorY-height/2,region.bottom-height));
   townInfo.style.left=`${left}px`;townInfo.style.top=`${top}px`;
 }
 function renderNeedMeters(port, tier, latest){
